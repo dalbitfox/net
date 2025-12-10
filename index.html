@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IP 서브넷 계산기</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header>
+            <h1>🌐 IP 서브넷 계산기</h1>
+            <nav class="navbar">
+                <a href="#" class="nav-link active" data-page="ipv4">IPv4 서브넷</a>
+                <a href="#" class="nav-link" data-page="ipv6">IPv6 서브넷</a>
+                <a href="#" class="nav-link" data-page="contact">문의하기</a>
+            </nav>
+        </header>
+
+        <!-- Main Content -->
+        <main>
+            <!-- IPv4 Subnets Page -->
+            <div id="ipv4" class="page active">
+                <div class="calc-wrapper">
+                    <!-- Left Section -->
+                    <div class="calc-left">
+                        <div class="calc-container">
+                            <!-- Network Class - Full Width -->
+                            <div class="form-group">
+                                <label>네트워크 클래스</label>
+                                <div class="radio-group">
+                                    <label><input type="radio" name="class" value="A" class="class-radio"> A</label>
+                                    <label><input type="radio" name="class" value="B" class="class-radio"> B</label>
+                                    <label><input type="radio" name="class" value="C" class="class-radio" checked> C</label>
+                                    <label><input type="radio" name="class" value="D" class="class-radio"> D</label>
+                                    <label><input type="radio" name="class" value="E" class="class-radio"> E</label>
+                                </div>
+                            </div>
+
+                            <!-- Row 1: IP 주소 and Mask Bits -->
+                            <div class="form-row">
+                                <div class="form-group form-group-half">
+                                    <label for="ipAddress">IP 주소</label>
+                                    <input type="text" id="ipAddress" placeholder="192.168.0.1" value="192.168.0.1">
+                                </div>
+                                <div class="form-group form-group-half">
+                                    <label for="maskBits">마스크 비트</label>
+                                    <select id="maskBits"></select>
+                                </div>
+                            </div>
+
+                            <!-- Row 2: Host Address Range and Subnet Mask -->
+                            <div class="form-row">
+                                <div class="form-group form-group-half">
+                                    <label for="hostAddressRange">할당 IP 범위</label>
+                                    <input type="text" id="hostAddressRange" placeholder="192.168.0.0 - 192.168.0.255" readonly>
+                                </div>
+                                <div class="form-group form-group-half">
+                                    <label for="subnetMask">서브넷 마스크</label>
+                                    <input type="text" id="subnetMask" placeholder="255.255.255.0" readonly>
+                                </div>
+                            </div>
+
+                            <!-- Row 3: Hosts per subnet and Network IP -->
+                            <div class="form-row">
+                                <div class="form-group form-group-half">
+                                    <label for="hostsPerSubnet">할당 IP 개수</label>
+                                    <input type="text" id="hostsPerSubnet" placeholder="256" readonly>
+                                </div>
+                                <div class="form-group form-group-half">
+                                    <label for="networkIP">네트워크 IP</label>
+                                    <input type="text" id="networkIP" placeholder="192.168.0.0" readonly>
+                                </div>
+                            </div>
+
+                            <!-- Row 4: Gateway IP and Broadcast IP -->
+                            <div class="form-row">
+                                <div class="form-group form-group-half">
+                                    <label for="gatewayIP">게이트웨이 IP</label>
+                                    <input type="text" id="gatewayIP" placeholder="192.168.0.1" readonly>
+                                </div>
+                                <div class="form-group form-group-half">
+                                    <label for="broadcastIP">브로드캐스트 IP</label>
+                                    <input type="text" id="broadcastIP" placeholder="192.168.0.255" readonly>
+                                </div>
+                            </div>
+
+                            <!-- Row 5: Real Device Available IP - Full Width -->
+                            <div class="form-group">
+                                <label for="realDeviceIP">고객이 사용 할 수 있는 IP</label>
+                                <input type="text" id="realDeviceIP" placeholder="192.168.0.2 - 192.168.0.254" readonly class="center-text">
+                            </div>
+                        </div>
+
+                        <!-- Class Information Box -->
+                        <div class="class-info-box">
+                            <h3 id="classTitle">IPv4 네트워크 클래스 - C 클래스</h3>
+                            <div class="class-info-content">
+                                <div class="info-item">
+                                    <span class="info-label">대역:</span>
+                                    <span class="info-value" id="classInfoRange">192.0.0.0 ~ 223.255.255.255</span>
+                                </div>
+                                <div class="info-item">
+                                    <span class="info-label">서브넷 마스크:</span>
+                                    <span class="info-value" id="classInfoSubnet">255.255.255.0 (/24)</span>
+                                </div>
+                                <div class="info-item">
+                                    <span class="info-label">호스트 수:</span>
+                                    <span class="info-value" id="classInfoHosts">약 254개</span>
+                                </div>
+                                <div class="info-item">
+                                    <span class="info-label">전통적 사용처:</span>
+                                    <span class="info-value" id="classInfoUsage">소규모 조직 (소기업, 소규모 부서, 가정용)</span>
+                                </div>
+                                <div class="info-item">
+                                    <span class="info-label">특징:</span>
+                                    <span class="info-value" id="classInfoFeature">첫 세 비트가 110으로 시작, 가장 일반적으로 사용됨</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Right Section -->
+                    <div class="calc-right">
+                    </div>
+                </div>
+            </div>
+
+            <!-- IPv6 Subnets Page -->
+            <div id="ipv6" class="page">
+                <div class="page-content">
+                    <h2>IPv6 서브넷</h2>
+                    <p>IPv6 서브넷 계산기는 준비 중입니다.</p>
+                    <p>IPv6 주소로 서브넷 정보를 계산할 수 있습니다.</p>
+                </div>
+            </div>
+
+            <!-- Contact Page -->
+            <div id="contact" class="page">
+                <div class="page-content">
+                    <h2>문의하기</h2>
+                    <div class="contact-form">
+                        <div class="form-group">
+                            <label for="contactName">이름</label>
+                            <input type="text" id="contactName" placeholder="이름을 입력하세요">
+                        </div>
+                        <div class="form-group">
+                            <label for="contactEmail">이메일</label>
+                            <input type="email" id="contactEmail" placeholder="이메일@example.com">
+                        </div>
+                        <div class="form-group">
+                            <label for="contactMessage">메시지</label>
+                            <textarea id="contactMessage" placeholder="메시지를 입력하세요..." rows="5"></textarea>
+                        </div>
+                        <button class="btn-submit">메시지 보내기</button>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Footer -->
+        <footer>
+            <p class="copyright">IP 서브넷 계산기 @ 대전인프라팀 2025</p>
+        </footer>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
