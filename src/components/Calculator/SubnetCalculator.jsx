@@ -109,7 +109,13 @@ const SubnetCalculator = () => {
                 </div>
 
                 {/* Full Width Result */}
-                <InputGroup label="고객이 사용 할 수 있는 IP">
+                <InputGroup label={
+                    <span>
+                        고객이 사용 할 수 있는 IP : <span style={{ color: '#FF1493', fontWeight: 'bold' }}>
+                            {result?.usableCount !== undefined ? result.usableCount + ' 개' : 'N/A'}
+                        </span>
+                    </span>
+                }>
                     <div className="usable-ip-box">
                         <span className="usable-ip-text">
                             {result?.usableRange || 'N/A'}

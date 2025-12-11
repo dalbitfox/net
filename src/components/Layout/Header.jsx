@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 
-const Header = ({ activePage, setActivePage, theme, toggleTheme }) => {
+const Header = ({ activePage, setActivePage, theme, toggleTheme, onLogoClick }) => {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
 
     const menuItems = [
@@ -12,7 +12,11 @@ const Header = ({ activePage, setActivePage, theme, toggleTheme }) => {
     ];
 
     const handleLogoClick = () => {
-        window.location.reload();
+        if (onLogoClick) {
+            onLogoClick();
+        } else {
+            window.location.reload();
+        }
     };
 
     const toggleMenu = () => {

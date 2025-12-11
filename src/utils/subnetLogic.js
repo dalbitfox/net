@@ -93,7 +93,7 @@ export const calculateSubnetInfo = (ipAddress, maskBits) => {
             result.type = 'Point-to-Point';
             result.hostRange = `${networkId} - ${broadcastAddress}`;
             result.usableRange = 'point-to-point';
-            result.usableCount = 2; // Theoretically
+            result.usableCount = 0; // User requested 0 for /31
             result.networkId = 'N/A';
             result.broadcastAddress = 'N/A';
             result.firstHost = 'N/A'; // Gateway N/A
@@ -101,20 +101,81 @@ export const calculateSubnetInfo = (ipAddress, maskBits) => {
             result.type = 'Loopback/Host';
             result.hostRange = `${networkId}`;
             result.usableRange = 'loopback';
-            result.usableCount = 1;
+            result.usableRange = 'loopback';
+            result.usableCount = 0; // User requested 0 for /32
             result.networkId = 'N/A';
             result.broadcastAddress = 'N/A';
             result.firstHost = 'N/A';
         } else {
-            result.usableRange = `${firstHost} - ${lastHost}`;
-            // hosts count excludes network and broadcast
-            result.usableCount = (totalIpCount - 2).toLocaleString();
+            result.usableRange = `${decimalToIp(firstHostDecimal + 1)} - ${lastHost}`;
+            // hosts count excludes network, broadcast, and gateway (total - 3)
+            const count = totalIpCount - 3;
+            result.usableCount = count > 0 ? count.toLocaleString() : 0;
         }
 
         return result;
 
     } catch (error) {
         console.error("Calculation Error", error);
+        return null;
+    }
+};
+
+export const calculateCidrInfo = (ipAddress, maskBits) => {
+    if (!isValidIp(ipAddress)) {
+        return null;
+    }
+
+    try {
+        const subnetMask = getSubnetMaskFromBits(maskBits);
+        const ipDecimal = ipToDecimal(ipAddress);
+        const maskDecimal = ipToDecimal(subnetMask);
+        const networkIdDecimal = ipDecimal & maskDecimal;
+        const networkId = decimalToIp(networkIdDecimal);
+
+        // Wildcard Mask
+        const wildcardDecimal = (~maskDecimal) >>> 0;
+        const wildcardMask = decimalToIp(wildcardDecimal);
+
+        // Broadcast Address
+        const broadcastDecimal = (networkIdDecimal | wildcardDecimal) >>> 0;
+        const broadcastAddress = decimalToIp(broadcastDecimal);
+
+        // Max Addresses
+        const maxAddresses = Math.pow(2, 32 - maskBits).toLocaleString();
+
+        // Max Subnets (Relative to Class)
+        const firstOctet = parseInt(ipAddress.split('.')[0], 10);
+        let defaultBits = 0;
+        if (firstOctet >= 1 && firstOctet <= 126) defaultBits = 8; // Class A
+        else if (firstOctet >= 128 && firstOctet <= 191) defaultBits = 16; // Class B
+        else if (firstOctet >= 192 && firstOctet <= 223) defaultBits = 24; // Class C
+        else defaultBits = maskBits; // Others, treat as is
+
+        let maxSubnets = 'N/A';
+        if (maskBits >= defaultBits) {
+            maxSubnets = Math.pow(2, maskBits - defaultBits).toLocaleString();
+        }
+
+        // CIDR Notation
+        const cidrNotation = `/${maskBits}`;
+        const route = `${networkId}/${maskBits}`;
+
+        return {
+            ipAddress,
+            maskBits,
+            subnetMask,
+            wildcardMask,
+            maxSubnets,
+            maxAddresses,
+            networkId,
+            cidrNotation,
+            route,
+            range: `${networkId} - ${broadcastAddress}`
+        };
+
+    } catch (error) {
+        console.error("CIDR Calculation Error", error);
         return null;
     }
 };

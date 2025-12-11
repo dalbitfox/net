@@ -2,11 +2,14 @@ import React, { useState, useEffect } from 'react';
 import Header from './components/Layout/Header';
 import Footer from './components/Layout/Footer';
 import SubnetCalculator from './components/Calculator/SubnetCalculator';
+import CidrCalculator from './components/Calculator/CidrCalculator';
+import Ipv6Calculator from './components/Calculator/Ipv6Calculator';
 import PlaceholderPage from './components/PlaceholderPage';
 
 function App() {
     const [activePage, setActivePage] = useState('ipv4');
     const [theme, setTheme] = useState('dark');
+    const [refreshKey, setRefreshKey] = useState(0);
 
     useEffect(() => {
         // Initial theme setup
@@ -17,14 +20,18 @@ function App() {
         setTheme(prev => prev === 'dark' ? 'light' : 'dark');
     };
 
+    const handleLogoClick = () => {
+        setRefreshKey(prev => prev + 1);
+    };
+
     const renderContent = () => {
         switch (activePage) {
             case 'ipv4':
                 return <SubnetCalculator />;
             case 'cidr':
-                return <PlaceholderPage title="IPv4 CIDR 계산기" icon="🔢" />;
+                return <CidrCalculator />;
             case 'ipv6':
-                return <PlaceholderPage title="IPv6 서브넷 계산기" icon="🌐" />;
+                return <Ipv6Calculator />;
             case 'trace':
                 return <PlaceholderPage title="IP 추적 (GeoLocation)" icon="🌍" />;
             case 'port':
@@ -41,10 +48,11 @@ function App() {
                 setActivePage={setActivePage}
                 theme={theme}
                 toggleTheme={toggleTheme}
+                onLogoClick={handleLogoClick}
             />
 
             <main className="container mx-auto py-8 flex-grow">
-                <div className="fade-in-enter">
+                <div className="fade-in-enter" key={`${activePage}-${refreshKey}`}>
                     {renderContent()}
                 </div>
             </main>
