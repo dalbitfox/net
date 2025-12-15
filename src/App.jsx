@@ -4,6 +4,7 @@ import Footer from './components/Layout/Footer';
 import SubnetCalculator from './components/Calculator/SubnetCalculator';
 import CidrCalculator from './components/Calculator/CidrCalculator';
 import Ipv6Calculator from './components/Calculator/Ipv6Calculator';
+import IpTracker from './components/Calculator/IpTracker';
 import PlaceholderPage from './components/PlaceholderPage';
 
 function App() {
@@ -33,7 +34,7 @@ function App() {
             case 'ipv6':
                 return <Ipv6Calculator />;
             case 'trace':
-                return <PlaceholderPage title="IP 추적 (GeoLocation)" icon="🌍" />;
+                return <IpTracker />;
             case 'port':
                 return <PlaceholderPage title="오픈 포트 스캐너" icon="🔌" />;
             default:
