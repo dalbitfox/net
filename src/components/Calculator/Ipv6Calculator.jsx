@@ -90,8 +90,6 @@ const Ipv6Calculator = () => {
                                     <div>Host : 52 ~ 64 비트</div>
                                     <div>PTP 구간 : 126 비트</div>
                                     <div>Loopback : 128 비트</div>
-                                    <div className="text-yellow-400 mt-2">※ Anycast, Gateway (기본 2개 사용))</div>
-                                    <div className="text-yellow-400 mt-2">※ Broadcast 주소 없음 (Multicast 사용)</div>
                                 </div>
                             </div>
                         </div>
@@ -109,7 +107,13 @@ const Ipv6Calculator = () => {
                             <div>
                                 <span className="opacity-60 block mb-1">[Calculation]</span>
                                 <div className="text-xs opacity-80">
-                                    Total = 2<sup>{128 - prefixLength}</sup> = {result.totalAddresses}
+                                    <div className="mb-4">
+                                        Total = 2<sup>{128 - prefixLength}</sup> = {result.totalAddresses}
+                                    </div>
+                                    <div className="text-yellow-400 space-y-1">
+                                        <div>※ Anycast, Gateway (기본 2개 사용)</div>
+                                        <div>※ Broadcast 주소 없음 (Multicast 사용)</div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
