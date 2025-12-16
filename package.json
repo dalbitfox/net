@@ -13,6 +13,7 @@
     "deploy": "gh-pages -d dist -r https://github.com/dalbitfox/net.git"
   },
   "dependencies": {
+    "firebase": "^12.6.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
   },

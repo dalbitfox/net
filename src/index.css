@@ -184,7 +184,17 @@ header {
   color: var(--accent);
 }
 
+/* Remove hover effect from icon since it's gone, or keep for future */
 .logo-icon:hover {
+  animation: spin 2s linear infinite;
+}
+
+.logo-initial {
+  display: inline-block;
+  transform-style: preserve-3d;
+}
+
+.app-title:hover .logo-initial {
   animation: spin 2s linear infinite;
 }
 

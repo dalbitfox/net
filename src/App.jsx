@@ -6,6 +6,7 @@ import CidrCalculator from './components/Calculator/CidrCalculator';
 import Ipv6Calculator from './components/Calculator/Ipv6Calculator';
 import IpTracker from './components/Calculator/IpTracker';
 import PlaceholderPage from './components/PlaceholderPage';
+import TodoApp from './components/Todo/TodoApp';
 
 function App() {
     const [activePage, setActivePage] = useState('ipv4');
@@ -37,6 +38,8 @@ function App() {
                 return <IpTracker />;
             case 'port':
                 return <PlaceholderPage title="오픈 포트 스캐너" icon="🔌" />;
+            case 'contact':
+                return <TodoApp />;
             default:
                 return <SubnetCalculator />;
         }

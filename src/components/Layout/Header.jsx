@@ -9,6 +9,7 @@ const Header = ({ activePage, setActivePage, theme, toggleTheme, onLogoClick }) 
         { id: 'ipv6', label: 'IPv6 CIDR' },
         { id: 'trace', label: 'IP 추적' },
         { id: 'port', label: '포트 스캔' },
+        { id: 'contact', label: 'TalkTalk' },
     ];
 
     const handleLogoClick = () => {
@@ -34,23 +35,11 @@ const Header = ({ activePage, setActivePage, theme, toggleTheme, onLogoClick }) 
                 {/* Top Row: Logo, Theme, Hamburger */}
                 <div className="header-top">
                     <div className="logo-section" onClick={handleLogoClick} title="developer June™">
-                        {/* Network Mesh SVG */}
-                        <svg className="logo-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <circle cx="12" cy="12" r="3" />
-                            <circle cx="6" cy="6" r="2" />
-                            <circle cx="18" cy="6" r="2" />
-                            <circle cx="6" cy="18" r="2" />
-                            <circle cx="18" cy="18" r="2" />
-                            <line x1="12" y1="12" x2="7.5" y2="7.5" />
-                            <line x1="12" y1="12" x2="16.5" y2="7.5" />
-                            <line x1="12" y1="12" x2="7.5" y2="16.5" />
-                            <line x1="12" y1="12" x2="16.5" y2="16.5" />
-                        </svg>
                         <div className="text-container">
                             <span className="app-title" style={{ fontSize: '2.5rem' }}>
-                                NetBox
+                                <span className="logo-initial">N</span>etBox
                             </span>
-                            <span className="app-subtitle">네트워크 전문가를 위한 만능 도구 상자</span>
+                            <span className="app-subtitle">네트워크 전문가를 위한 만능도구상자</span>
                         </div>
                     </div>
 
