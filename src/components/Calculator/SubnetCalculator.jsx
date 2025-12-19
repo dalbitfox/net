@@ -24,7 +24,7 @@ const SubnetCalculator = () => {
         setNetworkClass(cls);
         const defaults = getClassDefaults(cls);
         setIpAddress(defaults.ip);
-        setMaskBits(defaults.bits);
+        setMaskBits(24);
     };
 
     const currentClassInfo = classInfoMap[networkClass];

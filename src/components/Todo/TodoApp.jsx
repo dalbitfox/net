@@ -16,6 +16,9 @@ const CommentItem = ({
 }) => {
     const timeStr = new Date(comment.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
+    const isAdmin = comment.text.startsWith('@j');
+    const displayText = isAdmin ? comment.text.substring(2).trim() : comment.text;
+
     return (
         <li className="inline-comment-item">
             <div className="comment-content-wrapper">
@@ -23,8 +26,21 @@ const CommentItem = ({
                 {depth > 1 && <span style={{ marginRight: '5px', color: 'var(--text-light)' }}>↳</span>}
 
                 <div className="comment-bubble" style={depth > 1 ? { background: 'rgba(255,255,255,0.03)' } : {}}>
-                    {comment.text}
+                    {displayText}
                 </div>
+
+                {isAdmin && (
+                    <span style={{
+                        fontSize: '0.75rem',
+                        marginLeft: '6px',
+                        color: 'var(--text-light)',
+                        letterSpacing: '0.5px',
+                        verticalAlign: 'baseline',
+                        opacity: 0.8
+                    }} title="Administrator">
+                        june™
+                    </span>
+                )}
 
                 <div className="comment-actions">
                     {/* Show Reply button only if depth < 10 */}
@@ -391,73 +407,90 @@ const TodoApp = () => {
                         <ul className="task-list">
                             {visibleTasks.length === 0 ? (
                                 <div className="empty-state">게시물이 없습니다.</div>
-                            ) : visibleTasks.map(task => (
-                                <li key={task.id} className="task-item">
-                                    <div className="task-main">
-                                        <div className="task-content">
-                                            <span className="task-text" style={{ fontWeight: '500' }}>{task.text}</span>
-                                        </div>
-                                        <div className="task-actions">
-                                            <button className="action-btn" onClick={() => toggleCommentInput(task.id)} title="댓글">
-                                                💬
-                                            </button>
-                                            <button className="action-btn" onClick={() => handleEditTask(task.id)} title="수정">
-                                                ✎
-                                            </button>
-                                            <button className="action-btn delete-btn" onClick={() => handleDeleteTask(task.id)} title="삭제">
-                                                🗑
-                                            </button>
-                                        </div>
-                                    </div>
-                                    <div className="task-meta">
-                                        <span>입력: {formatTime(task.createdAt)}</span>
-                                    </div>
+                            ) : visibleTasks.map(task => {
+                                const isTaskAdmin = task.text.startsWith('@j');
+                                const taskDisplayText = isTaskAdmin ? task.text.substring(2).trim() : task.text;
 
-                                    {/* Inline Comments Area */}
-                                    <div className="task-comments">
-                                        <ul className="inline-comment-list">
-                                            {task.comments && task.comments.map(comment => (
-                                                <CommentItem
-                                                    key={comment.id}
-                                                    comment={comment}
-                                                    taskId={task.id}
-                                                    depth={1}
-                                                    replyInputs={replyInputs}
-                                                    toggleReplyInput={toggleReplyInput}
-                                                    handleAddReply={handleAddReply}
-                                                    handleEditComment={handleEditComment}
-                                                    handleDeleteComment={handleDeleteComment}
-                                                />
-                                            ))}
-                                        </ul>
-
-                                        {/* Main Comment Input */}
-                                        {commentInputs[task.id] && (
-                                            <div className="inline-input-group" style={{ display: 'flex' }}>
-                                                <input
-                                                    id={`comment-input-${task.id}`}
-                                                    type="text"
-                                                    className="inline-comment-input"
-                                                    placeholder="댓글 작성..."
-                                                    onKeyPress={(e) => {
-                                                        if (e.key === 'Enter') {
-                                                            handleAddComment(task.id, e.target.value);
-                                                            e.target.value = '';
-                                                        }
-                                                    }}
-                                                />
-                                                <button className="inline-add-btn" onClick={() => {
-                                                    const input = document.getElementById(`comment-input-${task.id}`);
-                                                    handleAddComment(task.id, input.value);
-                                                    input.value = '';
-                                                }}>
-                                                    ↑
+                                return (
+                                    <li key={task.id} className="task-item">
+                                        <div className="task-main">
+                                            <div className="task-content">
+                                                <span className="task-text" style={{ fontWeight: '500' }}>{taskDisplayText}</span>
+                                                {isTaskAdmin && (
+                                                    <span style={{
+                                                        fontSize: '0.75rem',
+                                                        marginLeft: '6px',
+                                                        color: 'var(--text-light)',
+                                                        letterSpacing: '0.5px',
+                                                        verticalAlign: 'baseline',
+                                                        opacity: 0.8
+                                                    }} title="Administrator">
+                                                        june™
+                                                    </span>
+                                                )}
+                                            </div>
+                                            <div className="task-actions">
+                                                <button className="action-btn" onClick={() => toggleCommentInput(task.id)} title="댓글">
+                                                    💬
+                                                </button>
+                                                <button className="action-btn" onClick={() => handleEditTask(task.id)} title="수정">
+                                                    ✎
+                                                </button>
+                                                <button className="action-btn delete-btn" onClick={() => handleDeleteTask(task.id)} title="삭제">
+                                                    🗑
                                                 </button>
                                             </div>
-                                        )}
-                                    </div>
-                                </li>
-                            ))}
+                                        </div>
+                                        <div className="task-meta">
+                                            <span>입력: {formatTime(task.createdAt)}</span>
+                                        </div>
+
+                                        {/* Inline Comments Area */}
+                                        <div className="task-comments">
+                                            <ul className="inline-comment-list">
+                                                {task.comments && task.comments.map(comment => (
+                                                    <CommentItem
+                                                        key={comment.id}
+                                                        comment={comment}
+                                                        taskId={task.id}
+                                                        depth={1}
+                                                        replyInputs={replyInputs}
+                                                        toggleReplyInput={toggleReplyInput}
+                                                        handleAddReply={handleAddReply}
+                                                        handleEditComment={handleEditComment}
+                                                        handleDeleteComment={handleDeleteComment}
+                                                    />
+                                                ))}
+                                            </ul>
+
+                                            {/* Main Comment Input */}
+                                            {commentInputs[task.id] && (
+                                                <div className="inline-input-group" style={{ display: 'flex' }}>
+                                                    <input
+                                                        id={`comment-input-${task.id}`}
+                                                        type="text"
+                                                        className="inline-comment-input"
+                                                        placeholder="댓글 작성..."
+                                                        onKeyPress={(e) => {
+                                                            if (e.key === 'Enter') {
+                                                                handleAddComment(task.id, e.target.value);
+                                                                e.target.value = '';
+                                                            }
+                                                        }}
+                                                    />
+                                                    <button className="inline-add-btn" onClick={() => {
+                                                        const input = document.getElementById(`comment-input-${task.id}`);
+                                                        handleAddComment(task.id, input.value);
+                                                        input.value = '';
+                                                    }}>
+                                                        ↑
+                                                    </button>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </li>
+                                );
+                            })}
                         </ul>
                         {renderPagination(tasks.length, activePage, setActivePage)}
                     </div>
