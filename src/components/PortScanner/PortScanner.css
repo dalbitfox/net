@@ -1,0 +1,428 @@
+/* PortScanner specific styles - Scoped to .port-scanner-wrapper */
+.port-scanner-wrapper {
+    --bg-primary: #0a0e14;
+    --bg-secondary: #111820;
+    --bg-tertiary: #1a2332;
+    --accent-cyan: #00f5ff;
+    --accent-magenta: #ff00aa;
+    --accent-green: #00ff88;
+    --accent-yellow: #ffcc00;
+    --accent-red: #ff3366;
+    --text-primary: #e0e8f0;
+    --text-secondary: #7a8899;
+    --border-color: #2a3a4a;
+    --glow-cyan: 0 0 20px rgba(0, 245, 255, 0.5);
+    --glow-magenta: 0 0 20px rgba(255, 0, 170, 0.5);
+    --glow-green: 0 0 15px rgba(0, 255, 136, 0.4);
+
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--text-primary);
+    min-height: 100vh;
+    position: relative;
+    padding: 20px;
+}
+
+/* Header & Logo */
+.port-scanner-wrapper .scan-header {
+    text-align: center;
+    margin-bottom: 40px;
+}
+
+.port-scanner-wrapper .scan-logo {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 3rem;
+    font-weight: 900;
+    letter-spacing: 0.2em;
+    background: linear-gradient(135deg, var(--accent-cyan) 0%, var(--accent-magenta) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    display: inline-block;
+    position: relative;
+    animation: glitch 3s infinite;
+}
+
+.port-scanner-wrapper .scan-subtitle {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    letter-spacing: 0.5em;
+    margin-top: 10px;
+    text-transform: uppercase;
+}
+
+/* Control Panel */
+.port-scanner-wrapper .control-panel {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 30px;
+    margin-bottom: 30px;
+    position: relative;
+    overflow: hidden;
+}
+
+.port-scanner-wrapper .control-panel::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, var(--accent-cyan), var(--accent-magenta), var(--accent-cyan));
+    background-size: 200% 100%;
+    animation: gradient-flow 3s linear infinite;
+}
+
+@keyframes gradient-flow {
+    0% {
+        background-position: 0% 50%;
+    }
+
+    100% {
+        background-position: 200% 50%;
+    }
+}
+
+.port-scanner-wrapper .panel-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 25px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.port-scanner-wrapper .panel-title {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 1.1rem;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    color: var(--accent-cyan);
+}
+
+/* Form Grid */
+.port-scanner-wrapper .form-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 20px;
+}
+
+.port-scanner-wrapper .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.port-scanner-wrapper .form-label {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    color: var(--text-secondary);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.port-scanner-wrapper .form-label::before {
+    content: '▸';
+    color: var(--accent-cyan);
+}
+
+.port-scanner-wrapper .form-input {
+    background: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    padding: 12px 14px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.95rem;
+    color: var(--text-primary);
+    width: 100%;
+    transition: all 0.3s ease;
+}
+
+.port-scanner-wrapper .form-input:focus {
+    outline: none;
+    border-color: var(--accent-cyan);
+    box-shadow: 0 0 0 2px rgba(0, 245, 255, 0.1);
+}
+
+/* Buttons */
+.port-scanner-wrapper .protocol-selector {
+    display: flex;
+    gap: 10px;
+}
+
+.port-scanner-wrapper .protocol-btn {
+    flex: 1;
+    background: var(--bg-primary);
+    border: 2px solid var(--border-color);
+    border-radius: 6px;
+    padding: 12px;
+    font-family: 'Orbitron', sans-serif;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.port-scanner-wrapper .protocol-btn.active {
+    border-color: var(--accent-cyan);
+    color: var(--accent-cyan);
+    background: rgba(0, 245, 255, 0.1);
+}
+
+.port-scanner-wrapper .protocol-btn.active.udp {
+    border-color: var(--accent-magenta);
+    color: var(--accent-magenta);
+    background: rgba(255, 0, 170, 0.1);
+}
+
+/* Presets */
+.port-scanner-wrapper .preset-section {
+    margin-top: 25px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border-color);
+}
+
+.port-scanner-wrapper .preset-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 10px;
+}
+
+.port-scanner-wrapper .preset-chip {
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    border-radius: 20px;
+    padding: 6px 14px;
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.port-scanner-wrapper .preset-chip:hover {
+    border-color: var(--accent-green);
+    color: var(--accent-green);
+    background: rgba(0, 255, 136, 0.1);
+}
+
+/* Scan Button */
+.port-scanner-wrapper .scan-button {
+    width: 100%;
+    margin-top: 30px;
+    padding: 18px;
+    background: linear-gradient(135deg, var(--accent-cyan) 0%, var(--accent-magenta) 100%);
+    border: none;
+    border-radius: 6px;
+    font-family: 'Orbitron', sans-serif;
+    font-size: 1.1rem;
+    font-weight: 700;
+    letter-spacing: 0.2em;
+    color: var(--bg-primary);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-transform: uppercase;
+}
+
+.port-scanner-wrapper .scan-button:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 40px rgba(0, 245, 255, 0.4);
+}
+
+.port-scanner-wrapper .scan-button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.port-scanner-wrapper .scan-button.scanning {
+    animation: pulse 1.5s infinite;
+}
+
+/* Progress */
+.port-scanner-wrapper .progress-container {
+    margin-top: 30px;
+    background: var(--bg-primary);
+    border-radius: 8px;
+    padding: 20px;
+    border: 1px solid var(--border-color);
+}
+
+.port-scanner-wrapper .progress-header {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 10px;
+    color: var(--accent-cyan);
+    font-size: 0.9rem;
+}
+
+.port-scanner-wrapper .progress-bar {
+    height: 8px;
+    background: var(--bg-tertiary);
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.port-scanner-wrapper .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent-cyan), var(--accent-magenta));
+    transition: width 0.3s ease;
+}
+
+/* Stats */
+.port-scanner-wrapper .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 15px;
+    margin-bottom: 25px;
+}
+
+.port-scanner-wrapper .stat-card {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 15px;
+    text-align: center;
+    position: relative;
+}
+
+.port-scanner-wrapper .stat-value {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 2rem;
+    font-weight: 700;
+    margin-bottom: 5px;
+}
+
+.port-scanner-wrapper .stat-card.open .stat-value {
+    color: var(--accent-green);
+}
+
+.port-scanner-wrapper .stat-card.closed .stat-value {
+    color: var(--accent-red);
+}
+
+.port-scanner-wrapper .stat-card.filtered .stat-value {
+    color: var(--accent-yellow);
+}
+
+.port-scanner-wrapper .stat-card.total .stat-value {
+    color: var(--accent-cyan);
+}
+
+.port-scanner-wrapper .stat-label {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    color: var(--text-secondary);
+}
+
+/* Results Table */
+.port-scanner-wrapper .results-table-container {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    overflow-x: auto;
+    max-height: 500px;
+}
+
+.port-scanner-wrapper .results-table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 600px;
+}
+
+.port-scanner-wrapper th {
+    background: var(--bg-tertiary);
+    padding: 15px;
+    text-align: left;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    color: var(--text-secondary);
+    position: sticky;
+    top: 0;
+}
+
+.port-scanner-wrapper td {
+    padding: 12px 15px;
+    border-bottom: 1px solid var(--border-color);
+    font-size: 0.9rem;
+    color: var(--text-primary);
+}
+
+.port-scanner-wrapper .status-badge {
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    display: inline-block;
+}
+
+.port-scanner-wrapper .status-badge.open {
+    background: rgba(0, 255, 136, 0.15);
+    color: var(--accent-green);
+    border: 1px solid rgba(0, 255, 136, 0.3);
+}
+
+.port-scanner-wrapper .status-badge.closed {
+    background: rgba(255, 51, 102, 0.15);
+    color: var(--accent-red);
+    border: 1px solid rgba(255, 51, 102, 0.3);
+}
+
+.port-scanner-wrapper .status-badge.filtered {
+    background: rgba(255, 204, 0, 0.15);
+    color: var(--accent-yellow);
+    border: 1px solid rgba(255, 204, 0, 0.3);
+}
+
+.port-scanner-wrapper .error-message {
+    background: rgba(255, 51, 102, 0.1);
+    border: 1px solid var(--accent-red);
+    border-radius: 6px;
+    padding: 15px;
+    color: var(--accent-red);
+    margin-top: 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+@keyframes pulse {
+
+    0%,
+    100% {
+        box-shadow: 0 0 20px rgba(0, 245, 255, 0.4);
+    }
+
+    50% {
+        box-shadow: 0 0 40px rgba(0, 245, 255, 0.8);
+    }
+}
+
+@keyframes glitch {
+    0% {
+        transform: translate(0);
+    }
+
+    20% {
+        transform: translate(-2px, 2px);
+    }
+
+    40% {
+        transform: translate(-2px, -2px);
+    }
+
+    60% {
+        transform: translate(2px, 2px);
+    }
+
+    80% {
+        transform: translate(2px, -2px);
+    }
+
+    100% {
+        transform: translate(0);
+    }
+}

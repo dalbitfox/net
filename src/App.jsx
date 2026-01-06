@@ -8,6 +8,8 @@ import IpTracker from './components/Calculator/IpTracker';
 import PlaceholderPage from './components/PlaceholderPage';
 import TodoApp from './components/Todo/TodoApp';
 
+import PortScanner from './components/PortScanner/PortScanner';
+
 function App() {
     const [activePage, setActivePage] = useState('ipv4');
     const [theme, setTheme] = useState('dark');
@@ -37,7 +39,7 @@ function App() {
             case 'trace':
                 return <IpTracker />;
             case 'port':
-                return <PlaceholderPage title="오픈 포트 스캐너" icon="🔌" />;
+                return <PortScanner />;
             case 'contact':
                 return <TodoApp />;
             default:
