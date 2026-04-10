@@ -8,7 +8,7 @@ import IpTracker from './components/Calculator/IpTracker';
 import PlaceholderPage from './components/PlaceholderPage';
 import TodoApp from './components/Todo/TodoApp';
 
-import PortScanner from './components/PortScanner/PortScanner';
+import NetDiag from './components/NetDiagnostic/NetDiag';
 
 function App() {
     const [activePage, setActivePage] = useState('ipv4');
@@ -39,7 +39,7 @@ function App() {
             case 'trace':
                 return <IpTracker />;
             case 'port':
-                return <PortScanner />;
+                return <NetDiag />;
             case 'contact':
                 return <TodoApp />;
             default:

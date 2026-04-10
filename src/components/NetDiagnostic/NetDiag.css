@@ -1,5 +1,5 @@
-/* PortScanner specific styles - Scoped to .port-scanner-wrapper */
-.port-scanner-wrapper {
+/* PortScanner specific styles - Scoped to .diag-wrapper */
+.diag-wrapper {
     --bg-primary: #0a0e14;
     --bg-secondary: #111820;
     --bg-tertiary: #1a2332;
@@ -23,12 +23,12 @@
 }
 
 /* Header & Logo */
-.port-scanner-wrapper .scan-header {
+.diag-wrapper .scan-header {
     text-align: center;
     margin-bottom: 40px;
 }
 
-.port-scanner-wrapper .scan-logo {
+.diag-wrapper .scan-logo {
     font-family: 'Orbitron', sans-serif;
     font-size: 3rem;
     font-weight: 900;
@@ -42,7 +42,7 @@
     animation: glitch 3s infinite;
 }
 
-.port-scanner-wrapper .scan-subtitle {
+.diag-wrapper .scan-subtitle {
     font-size: 0.9rem;
     color: var(--text-secondary);
     letter-spacing: 0.5em;
@@ -51,7 +51,7 @@
 }
 
 /* Control Panel */
-.port-scanner-wrapper .control-panel {
+.diag-wrapper .control-panel {
     background: var(--bg-secondary);
     border: 1px solid var(--border-color);
     border-radius: 8px;
@@ -61,7 +61,7 @@
     overflow: hidden;
 }
 
-.port-scanner-wrapper .control-panel::before {
+.diag-wrapper .control-panel::before {
     content: '';
     position: absolute;
     top: 0;
@@ -83,7 +83,7 @@
     }
 }
 
-.port-scanner-wrapper .panel-header {
+.diag-wrapper .panel-header {
     display: flex;
     align-items: center;
     gap: 12px;
@@ -92,7 +92,7 @@
     border-bottom: 1px solid var(--border-color);
 }
 
-.port-scanner-wrapper .panel-title {
+.diag-wrapper .panel-title {
     font-family: 'Orbitron', sans-serif;
     font-size: 1.1rem;
     font-weight: 600;
@@ -101,19 +101,19 @@
 }
 
 /* Form Grid */
-.port-scanner-wrapper .form-grid {
+.diag-wrapper .form-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
     gap: 20px;
 }
 
-.port-scanner-wrapper .form-group {
+.diag-wrapper .form-group {
     display: flex;
     flex-direction: column;
     gap: 8px;
 }
 
-.port-scanner-wrapper .form-label {
+.diag-wrapper .form-label {
     font-size: 0.75rem;
     text-transform: uppercase;
     letter-spacing: 0.15em;
@@ -123,12 +123,12 @@
     gap: 8px;
 }
 
-.port-scanner-wrapper .form-label::before {
+.diag-wrapper .form-label::before {
     content: '▸';
     color: var(--accent-cyan);
 }
 
-.port-scanner-wrapper .form-input {
+.diag-wrapper .form-input {
     background: var(--bg-primary);
     border: 1px solid var(--border-color);
     border-radius: 4px;
@@ -140,19 +140,19 @@
     transition: all 0.3s ease;
 }
 
-.port-scanner-wrapper .form-input:focus {
+.diag-wrapper .form-input:focus {
     outline: none;
     border-color: var(--accent-cyan);
     box-shadow: 0 0 0 2px rgba(0, 245, 255, 0.1);
 }
 
 /* Buttons */
-.port-scanner-wrapper .protocol-selector {
+.diag-wrapper .protocol-selector {
     display: flex;
     gap: 10px;
 }
 
-.port-scanner-wrapper .protocol-btn {
+.diag-wrapper .protocol-btn {
     flex: 1;
     background: var(--bg-primary);
     border: 2px solid var(--border-color);
@@ -166,33 +166,33 @@
     transition: all 0.3s ease;
 }
 
-.port-scanner-wrapper .protocol-btn.active {
+.diag-wrapper .protocol-btn.active {
     border-color: var(--accent-cyan);
     color: var(--accent-cyan);
     background: rgba(0, 245, 255, 0.1);
 }
 
-.port-scanner-wrapper .protocol-btn.active.udp {
+.diag-wrapper .protocol-btn.active.udp {
     border-color: var(--accent-magenta);
     color: var(--accent-magenta);
     background: rgba(255, 0, 170, 0.1);
 }
 
 /* Presets */
-.port-scanner-wrapper .preset-section {
+.diag-wrapper .preset-section {
     margin-top: 25px;
     padding-top: 20px;
     border-top: 1px solid var(--border-color);
 }
 
-.port-scanner-wrapper .preset-grid {
+.diag-wrapper .preset-grid {
     display: flex;
     flex-wrap: wrap;
     gap: 10px;
     margin-top: 10px;
 }
 
-.port-scanner-wrapper .preset-chip {
+.diag-wrapper .preset-chip {
     background: var(--bg-tertiary);
     border: 1px solid var(--border-color);
     border-radius: 20px;
@@ -203,14 +203,14 @@
     transition: all 0.2s ease;
 }
 
-.port-scanner-wrapper .preset-chip:hover {
+.diag-wrapper .preset-chip:hover {
     border-color: var(--accent-green);
     color: var(--accent-green);
     background: rgba(0, 255, 136, 0.1);
 }
 
 /* Scan Button */
-.port-scanner-wrapper .scan-button {
+.diag-wrapper .scan-button {
     width: 100%;
     margin-top: 30px;
     padding: 18px;
@@ -227,22 +227,22 @@
     text-transform: uppercase;
 }
 
-.port-scanner-wrapper .scan-button:hover:not(:disabled) {
+.diag-wrapper .scan-button:hover:not(:disabled) {
     transform: translateY(-2px);
     box-shadow: 0 10px 40px rgba(0, 245, 255, 0.4);
 }
 
-.port-scanner-wrapper .scan-button:disabled {
+.diag-wrapper .scan-button:disabled {
     opacity: 0.6;
     cursor: not-allowed;
 }
 
-.port-scanner-wrapper .scan-button.scanning {
+.diag-wrapper .scan-button.scanning {
     animation: pulse 1.5s infinite;
 }
 
 /* Progress */
-.port-scanner-wrapper .progress-container {
+.diag-wrapper .progress-container {
     margin-top: 30px;
     background: var(--bg-primary);
     border-radius: 8px;
@@ -250,7 +250,7 @@
     border: 1px solid var(--border-color);
 }
 
-.port-scanner-wrapper .progress-header {
+.diag-wrapper .progress-header {
     display: flex;
     justify-content: space-between;
     margin-bottom: 10px;
@@ -258,28 +258,28 @@
     font-size: 0.9rem;
 }
 
-.port-scanner-wrapper .progress-bar {
+.diag-wrapper .progress-bar {
     height: 8px;
     background: var(--bg-tertiary);
     border-radius: 4px;
     overflow: hidden;
 }
 
-.port-scanner-wrapper .progress-fill {
+.diag-wrapper .progress-fill {
     height: 100%;
     background: linear-gradient(90deg, var(--accent-cyan), var(--accent-magenta));
     transition: width 0.3s ease;
 }
 
 /* Stats */
-.port-scanner-wrapper .stats-grid {
+.diag-wrapper .stats-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
     gap: 15px;
     margin-bottom: 25px;
 }
 
-.port-scanner-wrapper .stat-card {
+.diag-wrapper .stat-card {
     background: var(--bg-secondary);
     border: 1px solid var(--border-color);
     border-radius: 8px;
@@ -288,37 +288,37 @@
     position: relative;
 }
 
-.port-scanner-wrapper .stat-value {
+.diag-wrapper .stat-value {
     font-family: 'Orbitron', sans-serif;
     font-size: 2rem;
     font-weight: 700;
     margin-bottom: 5px;
 }
 
-.port-scanner-wrapper .stat-card.open .stat-value {
+.diag-wrapper .stat-card.open .stat-value {
     color: var(--accent-green);
 }
 
-.port-scanner-wrapper .stat-card.closed .stat-value {
+.diag-wrapper .stat-card.closed .stat-value {
     color: var(--accent-red);
 }
 
-.port-scanner-wrapper .stat-card.filtered .stat-value {
+.diag-wrapper .stat-card.filtered .stat-value {
     color: var(--accent-yellow);
 }
 
-.port-scanner-wrapper .stat-card.total .stat-value {
+.diag-wrapper .stat-card.total .stat-value {
     color: var(--accent-cyan);
 }
 
-.port-scanner-wrapper .stat-label {
+.diag-wrapper .stat-label {
     font-size: 0.7rem;
     text-transform: uppercase;
     color: var(--text-secondary);
 }
 
 /* Results Table */
-.port-scanner-wrapper .results-table-container {
+.diag-wrapper .results-table-container {
     background: var(--bg-secondary);
     border: 1px solid var(--border-color);
     border-radius: 8px;
@@ -326,13 +326,13 @@
     max-height: 500px;
 }
 
-.port-scanner-wrapper .results-table {
+.diag-wrapper .results-table {
     width: 100%;
     border-collapse: collapse;
     min-width: 600px;
 }
 
-.port-scanner-wrapper th {
+.diag-wrapper th {
     background: var(--bg-tertiary);
     padding: 15px;
     text-align: left;
@@ -343,14 +343,14 @@
     top: 0;
 }
 
-.port-scanner-wrapper td {
+.diag-wrapper td {
     padding: 12px 15px;
     border-bottom: 1px solid var(--border-color);
     font-size: 0.9rem;
     color: var(--text-primary);
 }
 
-.port-scanner-wrapper .status-badge {
+.diag-wrapper .status-badge {
     padding: 4px 8px;
     border-radius: 4px;
     font-size: 0.75rem;
@@ -359,25 +359,25 @@
     display: inline-block;
 }
 
-.port-scanner-wrapper .status-badge.open {
+.diag-wrapper .status-badge.open {
     background: rgba(0, 255, 136, 0.15);
     color: var(--accent-green);
     border: 1px solid rgba(0, 255, 136, 0.3);
 }
 
-.port-scanner-wrapper .status-badge.closed {
+.diag-wrapper .status-badge.closed {
     background: rgba(255, 51, 102, 0.15);
     color: var(--accent-red);
     border: 1px solid rgba(255, 51, 102, 0.3);
 }
 
-.port-scanner-wrapper .status-badge.filtered {
+.diag-wrapper .status-badge.filtered {
     background: rgba(255, 204, 0, 0.15);
     color: var(--accent-yellow);
     border: 1px solid rgba(255, 204, 0, 0.3);
 }
 
-.port-scanner-wrapper .error-message {
+.diag-wrapper .error-message {
     background: rgba(255, 51, 102, 0.1);
     border: 1px solid var(--accent-red);
     border-radius: 6px;

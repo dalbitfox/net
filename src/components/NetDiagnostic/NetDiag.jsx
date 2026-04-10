@@ -1,21 +1,21 @@
 import React, { useState } from 'react';
-import './PortScanner.css';
-import ScanConfig from './ScanConfig';
-import ScanStats from './ScanStats';
-import ScanResults from './ScanResults';
+import './NetDiag.css';
+import DiagConfig from './DiagConfig';
+import DiagStats from './DiagStats';
+import DiagResults from './DiagResults';
 
-const PortScanner = () => {
-    const [ipRange, setIpRange] = useState('');
-    const [portRange, setPortRange] = useState('');
+const NetDiag = () => {
+    const [targetNodes, setTargetNodes] = useState('');
+    const [channelRange, setChannelRange] = useState('');
     const [protocol, setProtocol] = useState('tcp');
-    const [isScanning, setIsScanning] = useState(false);
+    const [isDiagnosing, setIsDiagnosing] = useState(false);
     const [results, setResults] = useState([]);
     const [error, setError] = useState('');
     const [progress, setProgress] = useState(0);
 
     const API_BASE = ''; // Proxy handles the base URL
 
-    const runBatchScan = async (targets, batchSize = 10) => {
+    const runBatchDiag = async (targets, batchSize = 10) => {
         const total = targets.length;
         let processed = 0;
         let currentResults = [];
@@ -25,7 +25,7 @@ const PortScanner = () => {
 
             const chunk = targets.slice(i, i + batchSize);
             try {
-                const response = await fetch(`${API_BASE}/api/scan_batch`, {
+                const response = await fetch(`${API_BASE}/api/check_nodes`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ targets: chunk })
@@ -44,78 +44,78 @@ const PortScanner = () => {
                 setProgress(percent);
 
             } catch (err) {
-                console.error('Batch scan error:', err);
+                console.error('Batch diag error:', err);
                 setError("서버 연결 실패(Batch): Python 서버가 실행 중인지 확인하세요.");
                 break;
             }
         }
-        setIsScanning(false);
+        setIsDiagnosing(false);
     };
 
-    const handleScan = async () => {
-        if (!ipRange || !portRange) {
-            setError('IP 대역과 포트 범위를 모두 입력해주세요.');
+    const handleDiag = async () => {
+        if (!targetNodes || !channelRange) {
+            setError('대상 노드와 채널 범위를 모두 입력해주세요.');
             return;
         }
 
-        setIsScanning(true);
+        setIsDiagnosing(true);
         setResults([]);
         setError('');
         setProgress(0);
 
         try {
             // 1. Expand Targets
-            const expandResponse = await fetch(`${API_BASE}/api/expand_targets`, {
+            const expandResponse = await fetch(`${API_BASE}/api/prepare_nodes`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    ip_range: ipRange,
-                    port_range: portRange,
+                    target_nodes: targetNodes,
+                    channel_range: channelRange,
                     protocol: protocol
                 })
             });
 
             if (!expandResponse.ok) {
                 const errData = await expandResponse.json();
-                throw new Error(errData.error || 'Failed to initialize scan');
+                throw new Error(errData.error || 'Failed to initialize diagnostic');
             }
 
             const data = await expandResponse.json();
             const targets = data.targets || [];
 
             if (targets.length === 0) {
-                throw new Error('스캔 대상이 없습니다.');
+                throw new Error('진단 대상이 없습니다.');
             }
 
             if (targets.length > 1000) {
-                if (!window.confirm(`주의: ${targets.length}개의 타겟을 스캔합니다. 시간이 오래 걸릴 수 있습니다. 계속하시겠습니까?`)) {
-                    setIsScanning(false);
+                if (!window.confirm(`주의: ${targets.length}개의 타겟을 진단합니다. 시간이 오래 걸릴 수 있습니다. 계속하시겠습니까?`)) {
+                    setIsDiagnosing(false);
                     return;
                 }
             }
 
             // 2. Start Batch Scan
-            await runBatchScan(targets, 15); // Batch size 15
+            await runBatchDiag(targets, 15); // Batch size 15
 
         } catch (err) {
             setError(err.message);
-            setIsScanning(false);
+            setIsDiagnosing(false);
         }
     };
 
     return (
-        <div className="port-scanner-wrapper">
+        <div className="diag-wrapper">
 
 
-            <ScanConfig
-                ipRange={ipRange}
-                setIpRange={setIpRange}
-                portRange={portRange}
-                setPortRange={setPortRange}
+            <DiagConfig
+                targetNodes={targetNodes}
+                setTargetNodes={setTargetNodes}
+                channelRange={channelRange}
+                setChannelRange={setChannelRange}
                 protocol={protocol}
                 setProtocol={setProtocol}
-                onScan={handleScan}
-                isScanning={isScanning}
+                onDiag={handleDiag}
+                isDiagnosing={isDiagnosing}
             />
 
             {error && (
@@ -125,10 +125,10 @@ const PortScanner = () => {
             )}
 
             {/* Progress Bar */}
-            {isScanning && (
+            {isDiagnosing && (
                 <div className="progress-container">
                     <div className="progress-header">
-                        <span>스캔 진행 중...</span>
+                        <span>진단 진행 중...</span>
                         <span>{progress}%</span>
                     </div>
                     <div className="progress-bar">
@@ -140,12 +140,12 @@ const PortScanner = () => {
             {/* Results */}
             {results.length > 0 && (
                 <>
-                    <ScanStats results={results} />
-                    <ScanResults results={results} />
+                    <DiagStats results={results} />
+                    <DiagResults results={results} />
                 </>
             )}
         </div>
     );
 };
 
-export default PortScanner;
+export default NetDiag;

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 
-const ScanResults = ({ results }) => {
+const DiagResults = ({ results }) => {
     const [showOpenOnly, setShowOpenOnly] = useState(false);
 
     const filteredResults = showOpenOnly
@@ -11,7 +11,7 @@ const ScanResults = ({ results }) => {
         <div className="results-section" style={{ display: results.length > 0 ? 'block' : 'none', animation: 'fadeIn 0.5s ease' }}>
             <div className="panel-header" style={{ justifyContent: 'space-between', borderBottom: 'none' }}>
                 <h2 className="panel-title" style={{ fontSize: '1.3rem', color: 'var(--text-primary)' }}>
-                    스캔 결과 <span style={{
+                    진단 결과 <span style={{
                         background: 'var(--accent-green)',
                         color: 'var(--bg-primary)',
                         padding: '4px 12px',
@@ -28,7 +28,7 @@ const ScanResults = ({ results }) => {
                         onChange={(e) => setShowOpenOnly(e.target.checked)}
                         style={{ accentColor: 'var(--accent-green)', width: '18px', height: '18px' }}
                     />
-                    <label htmlFor="showOpenOnly" style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', cursor: 'pointer' }}>열린 포트만 보기</label>
+                    <label htmlFor="showOpenOnly" style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', cursor: 'pointer' }}>열린 채널만 보기</label>
                 </div>
             </div>
 
@@ -36,9 +36,9 @@ const ScanResults = ({ results }) => {
                 <table className="results-table">
                     <thead>
                         <tr>
-                            <th>IP 주소</th>
-                            <th>포트</th>
-                            <th>프로토콜</th>
+                            <th>노드 주소</th>
+                            <th>채널</th>
+                            <th>통신 방식</th>
                             <th>상태</th>
                             <th>서비스</th>
                             <th>배너</th>
@@ -75,4 +75,4 @@ const ScanResults = ({ results }) => {
     );
 };
 
-export default ScanResults;
+export default DiagResults;
