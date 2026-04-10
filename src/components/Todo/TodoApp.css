@@ -557,3 +557,42 @@
     color: var(--text-light);
     font-size: 1rem;
 }
+
+/* Mobile Layout Fixes */
+@media (max-width: 600px) {
+    .task-main {
+        flex-wrap: wrap;
+    }
+    
+    .task-content {
+        width: 100%;
+    }
+    
+    .task-actions {
+        width: 100%;
+        justify-content: flex-end;
+        opacity: 1; /* Always visible on touch screens */
+        margin-top: 10px;
+    }
+
+    .comment-content-wrapper {
+        flex-wrap: wrap;
+    }
+
+    .comment-bubble {
+        max-width: 100%;
+        flex: 1; /* Allow bubble to grow and push admin tag if needed */
+    }
+
+    .comment-actions {
+        flex-basis: 100%;
+        justify-content: flex-end;
+        opacity: 1; /* Always visible on touch screens */
+        margin-top: 6px;
+    }
+
+    .action-btn, .comment-action-btn {
+        padding: 6px 12px; /* Easier to tap on mobile */
+        font-size: 1.1rem;
+    }
+}
