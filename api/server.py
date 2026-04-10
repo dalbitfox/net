@@ -10,6 +10,9 @@ import socket
 import ipaddress
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import os
+import requests
+import re
+
 
 app = Flask(__name__)
 CORS(app)
@@ -233,6 +236,54 @@ def check_nodes():
 @app.route('/api/common-ports', methods=['GET'])
 def get_common_ports():
     return jsonify(COMMON_PORTS)
+
+
+def determine_whois_query_type(query: str) -> str:
+    query = query.strip()
+    if re.match(r'^AS\d+$', query, re.IGNORECASE):
+        return 'as_number'
+    
+    try:
+        ipaddress.ip_address(query)
+        return 'ip_address'
+    except ValueError:
+        pass
+        
+    return 'domain_name'
+
+@app.route('/api/whois', methods=['GET'])
+def whois_lookup():
+    """공공데이터포털 Whois API 프록시"""
+    query = request.args.get('query', '').strip()
+    if not query:
+        return jsonify({'error': '검색어를 입력하세요.'}), 400
+        
+    query_type = determine_whois_query_type(query)
+    url = f"http://apis.data.go.kr/B551505/whois/{query_type}"
+    
+    API_KEY = "fa19607998cfaf40deefe038c513e9d9bbfd09dee004f2f7e3ed807cfe22cea5"
+    
+    # serviceKey는 requests params로 넘길 때 urlencoding이 중복 적용될 수 있으므로, URL 문자열에 직접 붙이는 방식 고려.
+    # 하지만 공공데이터 API 키가 단순히 16진수 해시 형태이므로 params로 넘겨도 안전함.
+    params = {
+        'serviceKey': API_KEY,
+        'query': query,
+        'answer': 'json'
+    }
+    
+    try:
+        response = requests.get(url, params=params, timeout=10)
+        
+        try:
+            data = response.json()
+            return jsonify(data)
+        except ValueError:
+            # 에러 시 XML로 떨어지는 경우 대비
+            return jsonify({'error': 'JSON 파싱 실패', 'raw_response': response.text}), 500
+            
+    except requests.exceptions.RequestException as e:
+        return jsonify({'error': f'API 호출 중 오류 발생: {str(e)}'}), 500
+
 
 
 # Vercel이 이 app 객체를 사용함
