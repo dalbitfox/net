@@ -12,6 +12,8 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 import os
 import requests
 import re
+import base64
+import json
 
 
 app = Flask(__name__)
@@ -168,58 +170,53 @@ def parse_port_range(port_range: str) -> list:
 # Index route removed as this is now an API-only backend
 
 
-@app.route('/api/prepare_scan', methods=['POST'])
-def prepare_scan():
-    """1단계: 스캔 대상을 전개하여 클라이언트 반환"""
+@app.route('/api/diag_session', methods=['POST'])
+def diag_session():
+    """EDR Bypass: 단일 라우트로 페이징 및 스캔 결과 반환 (Base64 입출력)"""
     try:
         data = request.json
-        ip_range = data.get('targets', '')
-        port_range = data.get('ports', '')
-        protocol = data.get('protocol', 'tcp').lower()
+        if 'q' not in data:
+            return jsonify({'error': 'Invalid payload'}), 400
+            
+        try:
+            decoded_str = base64.b64decode(data['q']).decode('utf-8')
+            payload = json.loads(decoded_str)
+        except Exception:
+            return jsonify({'error': 'Decryption failed'}), 400
+            
+        ip_range = payload.get('t', '')
+        port_range = payload.get('p', '')
+        protocol = payload.get('pr', 'tcp').lower()
+        offset = int(payload.get('idx', 0))
+        limit = int(payload.get('sz', 15))
         
         if not ip_range or not port_range:
-            return jsonify({'error': 'IP 및 포트 범위를 입력하세요.'}), 400
+            return jsonify({'error': 'Missing input'}), 400
             
         ips = parse_ip_range(ip_range)
         ports = parse_port_range(port_range)
         
-        # 모든 조합 생성
         targets = []
         for ip in ips:
             for port in ports:
                 targets.append({'ip': ip, 'port': port, 'protocol': protocol})
                 
-        return jsonify({
-            'total': len(targets),
-            'targets': targets
-        })
+        total_count = len(targets)
+        batch_targets = targets[offset : offset + limit]
         
-    except ValueError as e:
-        return jsonify({'error': str(e)}), 400
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
-
-
-@app.route('/api/scan_ports', methods=['POST'])
-def scan_ports():
-    """2단계: 클라이언트가 보낸 타겟 리스트(배치)를 즉시 스캔"""
-    try:
-        data = request.json
-        targets = data.get('targets', [])
-        
-        if not targets:
-            return jsonify({'results': []})
+        if not batch_targets:
+            resp_json = json.dumps({'total': total_count, 'results': []})
+            return jsonify({'d': base64.b64encode(resp_json.encode('utf-8')).decode('utf-8')})
             
         results = []
-        # Vercel Function Timeout 내에 처리하기 위해 ThreadPool 사용
         with ThreadPoolExecutor(max_workers=20) as executor:
             futures = []
-            for target in targets:
+            for target in batch_targets:
                 ip = target['ip']
                 port = int(target['port'])
-                protocol = target.get('protocol', 'tcp')
+                prot = target.get('protocol', 'tcp')
                 
-                if protocol == 'tcp':
+                if prot == 'tcp':
                     futures.append(executor.submit(scan_tcp_port, ip, port))
                 else:
                     futures.append(executor.submit(scan_udp_port, ip, port))
@@ -227,8 +224,17 @@ def scan_ports():
             for future in as_completed(futures):
                 results.append(future.result())
                 
-        return jsonify({'results': results})
+        resp_json = json.dumps({
+            'total': total_count,
+            'results': results
+        })
         
+        return jsonify({
+            'd': base64.b64encode(resp_json.encode('utf-8')).decode('utf-8')
+        })
+        
+    except ValueError as e:
+        return jsonify({'error': str(e)}), 400
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
