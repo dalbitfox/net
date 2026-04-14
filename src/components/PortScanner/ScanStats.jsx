@@ -1,6 +1,6 @@
 import React from 'react';
 
-const DiagStats = ({ results }) => {
+const ScanStats = ({ results }) => {
     const total = results.length;
     const open = results.filter(r => r.state.includes('open')).length;
     const closed = results.filter(r => r.state === 'closed').length;
@@ -10,7 +10,7 @@ const DiagStats = ({ results }) => {
         <div className="stats-grid">
             <div className="stat-card total">
                 <div className="stat-value">{total}</div>
-                <div className="stat-label">총 진단 개수</div>
+                <div className="stat-label">총 스캔 개수</div>
             </div>
             <div className="stat-card open">
                 <div className="stat-value">{open}</div>
@@ -28,4 +28,4 @@ const DiagStats = ({ results }) => {
     );
 };
 
-export default DiagStats;
+export default ScanStats;

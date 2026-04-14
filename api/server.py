@@ -168,13 +168,13 @@ def parse_port_range(port_range: str) -> list:
 # Index route removed as this is now an API-only backend
 
 
-@app.route('/api/prepare_nodes', methods=['POST'])
-def prepare_nodes():
-    """1단계: 진단 대상을 전개하여 클라이언트 반환"""
+@app.route('/api/prepare_scan', methods=['POST'])
+def prepare_scan():
+    """1단계: 스캔 대상을 전개하여 클라이언트 반환"""
     try:
         data = request.json
-        ip_range = data.get('target_nodes', '')
-        port_range = data.get('channel_range', '')
+        ip_range = data.get('targets', '')
+        port_range = data.get('ports', '')
         protocol = data.get('protocol', 'tcp').lower()
         
         if not ip_range or not port_range:
@@ -200,9 +200,9 @@ def prepare_nodes():
         return jsonify({'error': str(e)}), 500
 
 
-@app.route('/api/check_nodes', methods=['POST'])
-def check_nodes():
-    """2단계: 클라이언트가 보낸 타겟 리스트(배치)를 즉시 진단"""
+@app.route('/api/scan_ports', methods=['POST'])
+def scan_ports():
+    """2단계: 클라이언트가 보낸 타겟 리스트(배치)를 즉시 스캔"""
     try:
         data = request.json
         targets = data.get('targets', [])

@@ -1,15 +1,15 @@
 import React from 'react';
-import { presets } from './channelPresets';
+import { presets } from './portPresets';
 
-const DiagConfig = ({
-    targetNodes, setTargetNodes,
-    channelRange, setChannelRange,
+const ScanConfig = ({
+    targets, setTargets,
+    ports, setPorts,
     protocol, setProtocol,
-    onDiag, isDiagnosing
+    onScan, isScanning
 }) => {
 
     const handlePresetClick = (preset) => {
-        setChannelRange(preset.ports);
+        setPorts(preset.ports);
         setProtocol(preset.protocol);
     };
 
@@ -20,31 +20,31 @@ const DiagConfig = ({
                     <circle cx="12" cy="12" r="10" />
                     <path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
                 </svg>
-                <span className="panel-title">진단 정보 입력</span>
+                <span className="panel-title">스캔 정보 입력</span>
             </div>
 
             <div className="form-grid">
                 <div className="form-group">
-                    <label className="form-label">대상 노드</label>
+                    <label className="form-label">대상 IP</label>
                     <input
                         type="text"
                         className="form-input"
                         placeholder="예: 192.168.1.1 또는 /24"
-                        value={targetNodes}
-                        onChange={(e) => setTargetNodes(e.target.value)}
-                        disabled={isDiagnosing}
+                        value={targets}
+                        onChange={(e) => setTargets(e.target.value)}
+                        disabled={isScanning}
                     />
                 </div>
 
                 <div className="form-group">
-                    <label className="form-label">채널 범위</label>
+                    <label className="form-label">포트 범위</label>
                     <input
                         type="text"
                         className="form-input"
                         placeholder="예: 22,80,443 또는 1-1000"
-                        value={channelRange}
-                        onChange={(e) => setChannelRange(e.target.value)}
-                        disabled={isDiagnosing}
+                        value={ports}
+                        onChange={(e) => setPorts(e.target.value)}
+                        disabled={isScanning}
                     />
                 </div>
 
@@ -54,16 +54,16 @@ const DiagConfig = ({
                         <button
                             className={`protocol-btn ${protocol === 'tcp' ? 'active' : ''}`}
                             onClick={() => setProtocol('tcp')}
-                            disabled={isDiagnosing}
+                            disabled={isScanning}
                         >
-                            T-Type
+                            TCP
                         </button>
                         <button
                             className={`protocol-btn udp ${protocol === 'udp' ? 'active' : ''}`}
                             onClick={() => setProtocol('udp')}
-                            disabled={isDiagnosing}
+                            disabled={isScanning}
                         >
-                            U-Type
+                            UDP
                         </button>
                     </div>
                 </div>
@@ -76,8 +76,8 @@ const DiagConfig = ({
                         <div
                             key={index}
                             className="preset-chip"
-                            onClick={() => !isDiagnosing && handlePresetClick(preset)}
-                            style={{ opacity: isDiagnosing ? 0.5 : 1, cursor: isDiagnosing ? 'not-allowed' : 'pointer' }}
+                            onClick={() => !isScanning && handlePresetClick(preset)}
+                            style={{ opacity: isScanning ? 0.5 : 1, cursor: isScanning ? 'not-allowed' : 'pointer' }}
                         >
                             {preset.label} <span>{preset.display}</span>
                         </div>
@@ -86,14 +86,14 @@ const DiagConfig = ({
             </div>
 
             <button
-                className={`scan-button ${isDiagnosing ? 'scanning' : ''}`}
-                onClick={onDiag}
-                disabled={isDiagnosing}
+                className={`scan-button ${isScanning ? 'scanning' : ''}`}
+                onClick={onScan}
+                disabled={isScanning}
             >
-                {isDiagnosing ? '⟳ 진단 진행 중...' : '▶ 진단 시작'}
+                {isScanning ? '⟳ 스캔 진행 중...' : '▶ 스캔 시작'}
             </button>
         </div>
     );
 };
 
-export default DiagConfig;
+export default ScanConfig;
