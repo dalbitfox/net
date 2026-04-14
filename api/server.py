@@ -274,7 +274,11 @@ def whois_lookup():
             pass
 
     url = f"http://apis.data.go.kr/B551505/whois/{query_type}"
-    API_KEY = "fa19607998cfaf40deefe038c513e9d9bbfd09dee004f2f7e3ed807cfe22cea5"
+    
+    API_KEY = os.environ.get("KISA_WHOIS_API_KEY")
+    if not API_KEY:
+        # Fallback to the hardcoded key for local dev if the user didn't set it in the environment
+        API_KEY = "fa19607998cfaf40deefe038c513e9d9bbfd09dee004f2f7e3ed807cfe22cea5"
     
     params = {
         'serviceKey': API_KEY,
