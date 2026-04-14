@@ -259,30 +259,45 @@ def whois_lookup():
         return jsonify({'error': '검색어를 입력하세요.'}), 400
         
     query_type = determine_whois_query_type(query)
-    url = f"http://apis.data.go.kr/B551505/whois/{query_type}"
     
+    resolved_ip = None
+    if query_type == 'domain_name':
+        try:
+            resolved_ip = socket.gethostbyname(query)
+        except Exception:
+            pass
+
+    url = f"http://apis.data.go.kr/B551505/whois/{query_type}"
     API_KEY = "fa19607998cfaf40deefe038c513e9d9bbfd09dee004f2f7e3ed807cfe22cea5"
     
-    # serviceKey는 requests params로 넘길 때 urlencoding이 중복 적용될 수 있으므로, URL 문자열에 직접 붙이는 방식 고려.
-    # 하지만 공공데이터 API 키가 단순히 16진수 해시 형태이므로 params로 넘겨도 안전함.
     params = {
         'serviceKey': API_KEY,
         'query': query,
         'answer': 'json'
     }
     
+    result_data = {}
+    
     try:
         response = requests.get(url, params=params, timeout=10)
-        
         try:
-            data = response.json()
-            return jsonify(data)
+            result_data = response.json()
         except ValueError:
-            # 에러 시 XML로 떨어지는 경우 대비
             return jsonify({'error': 'JSON 파싱 실패', 'raw_response': response.text}), 500
             
     except requests.exceptions.RequestException as e:
         return jsonify({'error': f'API 호출 중 오류 발생: {str(e)}'}), 500
+
+    if resolved_ip:
+        result_data['resolved_ip'] = resolved_ip
+        try:
+            ip_url = "http://apis.data.go.kr/B551505/whois/ip_address"
+            ip_res = requests.get(ip_url, params={'serviceKey': API_KEY, 'query': resolved_ip, 'answer': 'json'}, timeout=5)
+            result_data['ip_whois'] = ip_res.json()
+        except Exception:
+            pass
+            
+    return jsonify(result_data)
 
 
 

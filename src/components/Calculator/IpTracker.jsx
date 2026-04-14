@@ -51,6 +51,24 @@ const IpTracker = () => {
             const d = whois.krdomain;
             infoList.push({ label: '도메인 이름', value: d.name });
             infoList.push({ label: '등록인', value: d.regName });
+            
+            if (result.resolved_ip) {
+                infoList.push({ label: '연결된 IP 주소', value: result.resolved_ip });
+            }
+
+            // 추가 IP Whois 정보에서 통신사(ISP) 추출
+            if (result.ip_whois?.response?.whois?.korean?.ISP?.netinfo?.orgName) {
+                infoList.push({ 
+                    label: '통신사 (ISP)', 
+                    value: result.ip_whois.response.whois.korean.ISP.netinfo.orgName 
+                });
+            } else if (result.ip_whois?.response?.whois?.english?.ISP?.netinfo?.orgName) {
+                 infoList.push({ 
+                    label: '통신사 (ISP)', 
+                    value: result.ip_whois.response.whois.english.ISP.netinfo.orgName 
+                });
+            }
+
             infoList.push({ label: '등록일자', value: d.regDate });
             infoList.push({ label: '최종수정일자', value: d.lastUpdatedDate });
             infoList.push({ label: '만료일자', value: d.endDate });
@@ -64,6 +82,11 @@ const IpTracker = () => {
             infoList.push({ label: '국가 코드', value: whois.countryCode });
             
             if (whois.korean) {
+                const ispInfo = whois.korean.ISP?.netinfo;
+                if (ispInfo) {
+                    infoList.push({ label: '통신사 (ISP)', value: ispInfo.orgName });
+                }
+                
                 const piInfo = whois.korean.PI?.netInfo;
                 if (piInfo) {
                     infoList.push({ label: '기관(ISP) 이름', value: piInfo.orgName });
@@ -77,6 +100,11 @@ const IpTracker = () => {
                     infoList.push({ label: '사용자 네트워크 이름', value: userInfo.orgName });
                     infoList.push({ label: '사용자 주소', value: userInfo.addr, fullWidth: true });
                 }
+            } else if (whois.english) {
+                  const ispInfo = whois.english.ISP?.netinfo;
+                  if (ispInfo) {
+                     infoList.push({ label: '통신사 (ISP)', value: ispInfo.orgName });
+                  }
             }
         }
         else if (whois.queryType === 'ASN') {
