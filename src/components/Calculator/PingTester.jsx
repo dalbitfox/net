@@ -141,6 +141,8 @@ const PingTester = () => {
                 }
             }
             
+            const finalLossRate = sent > 0 ? Math.round((lost / sent) * 100) : 0;
+
             if (stopRef.current) {
                 setTerminalLines(prev => [
                     ...prev,
@@ -148,10 +150,19 @@ const PingTester = () => {
                     `[SYSTEM] 사용자에 의해 핑 테스트가 중지되었습니다. (총 ${sent}회 전송)`
                 ]);
             } else {
+                let diagnosticMsg = '';
+                if (finalLossRate === 100) {
+                    diagnosticMsg = `❌ [SYSTEM] 핑 테스트 완료: 대상 호스트로부터 응답이 없습니다. (연결 끊김)`;
+                } else if (finalLossRate > 0) {
+                    diagnosticMsg = `⚠️ [SYSTEM] 핑 테스트 완료: 일부 패킷 유실 발생. (응답 수신율 불안정: 손실률 ${finalLossRate}%)`;
+                } else {
+                    diagnosticMsg = `✔ [SYSTEM] 핑 테스트 완료: 응답 수신율 안정적. (손실률 0%)`;
+                }
+
                 setTerminalLines(prev => [
                     ...prev,
                     '',
-                    `[SYSTEM] 핑 테스트 완료: 응답 수신율 안정적.`
+                    diagnosticMsg
                 ]);
             }
         } catch (err) {
@@ -373,7 +384,8 @@ const PingTester = () => {
                                     wordBreak: 'break-all',
                                     color: line.startsWith('$') ? '#00bfff' : 
                                            line.startsWith('❌') || line.startsWith('[ERROR]') ? '#ff453a' : 
-                                           line.startsWith('✔') || line.startsWith('[SYSTEM]') ? '#32cd32' : '#33ff33'
+                                           line.startsWith('✔') || line.startsWith('[SYSTEM]') ? '#32cd32' : 
+                                           line.startsWith('⚠️') ? '#ffbd2e' : '#33ff33'
                                 }}
                             >
                                 {line}
