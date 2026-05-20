@@ -10,12 +10,31 @@ const PingTester = () => {
     const [error, setError] = useState('');
     const terminalEndRef = useRef(null);
 
-    const presets = [
+    const [presets, setPresets] = useState([
         { name: 'Google DNS', address: '8.8.8.8' },
         { name: 'Cloudflare DNS', address: '1.1.1.1' },
-        { name: 'Localhost', address: '127.0.0.1' },
-        { name: 'Gateway', address: '192.168.0.1' }
-    ];
+        { name: 'Localhost', address: '127.0.0.1' }
+    ]);
+
+    useEffect(() => {
+        const fetchGateway = async () => {
+            try {
+                const response = await fetch('/api/gateway');
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.success && data.gateway) {
+                        setPresets(prev => {
+                            if (prev.some(p => p.name === 'Gateway')) return prev;
+                            return [...prev, { name: 'Gateway', address: data.gateway }];
+                        });
+                    }
+                }
+            } catch (err) {
+                console.error('Failed to fetch gateway IP:', err);
+            }
+        };
+        fetchGateway();
+    }, []);
 
     useEffect(() => {
         if (terminalEndRef.current) {

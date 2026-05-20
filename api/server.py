@@ -244,6 +244,92 @@ def get_common_ports():
     return jsonify(COMMON_PORTS)
 
 
+def get_default_gateway():
+    """
+    현재 시스템의 기본 게이트웨이 IP를 감지합니다.
+    감지할 수 없으면 None을 반환합니다.
+    """
+    import platform
+    import subprocess
+    import re
+    
+    system_name = platform.system().lower()
+    
+    try:
+        if 'windows' in system_name:
+            # route print 명령어를 실행하여 0.0.0.0 에 해당하는 게이트웨이 추출
+            process = subprocess.run(
+                ['route', 'print', '0.0.0.0'],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+                timeout=3,
+                shell=True
+            )
+            stdout = process.stdout
+            match = re.search(r'0\.0\.0\.0\s+0\.0\.0\.0\s+(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})', stdout)
+            if match:
+                return match.group(1)
+            
+            # fallback to ipconfig
+            process = subprocess.run(
+                ['ipconfig'],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+                timeout=3
+            )
+            matches = re.findall(r'(?:기본 게이트웨이|Default Gateway)(?:\s|\.)*:\s*(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})', process.stdout, re.IGNORECASE)
+            if matches:
+                for ip in matches:
+                    if ip != '0.0.0.0':
+                        return ip
+                        
+        else:
+            # Linux/macOS
+            try:
+                process = subprocess.run(
+                    ['ip', 'route', 'show'],
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                    text=True,
+                    timeout=3
+                )
+                match = re.search(r'default\s+via\s+(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})', process.stdout)
+                if match:
+                    return match.group(1)
+            except Exception:
+                pass
+                
+            try:
+                process = subprocess.run(
+                    ['netstat', '-rn'],
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                    text=True,
+                    timeout=3
+                )
+                match = re.search(r'default\s+(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})', process.stdout)
+                if match:
+                    return match.group(1)
+            except Exception:
+                pass
+                
+    except Exception:
+        pass
+        
+    return None
+
+
+@app.route('/api/gateway', methods=['GET'])
+def get_gateway():
+    gateway_ip = get_default_gateway()
+    if gateway_ip:
+        return jsonify({'success': True, 'gateway': gateway_ip})
+    else:
+        return jsonify({'success': False, 'gateway': None})
+
+
 def determine_whois_query_type(query: str) -> str:
     query = query.strip()
     if re.match(r'^AS\d+$', query, re.IGNORECASE):
