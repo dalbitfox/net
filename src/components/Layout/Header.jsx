@@ -8,6 +8,7 @@ const Header = ({ activePage, setActivePage, theme, toggleTheme, onLogoClick }) 
         { id: 'cidr', label: 'IPv4 CIDR' },
         { id: 'ipv6', label: 'IPv6 CIDR' },
         { id: 'trace', label: 'IP 추적' },
+        { id: 'ping', label: 'Ping 테스트' },
         { id: 'port', label: '포트 스캔' },
         { id: 'contact', label: 'TalkTalk' },
     ];

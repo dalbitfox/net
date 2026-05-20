@@ -5,6 +5,7 @@ import SubnetCalculator from './components/Calculator/SubnetCalculator';
 import CidrCalculator from './components/Calculator/CidrCalculator';
 import Ipv6Calculator from './components/Calculator/Ipv6Calculator';
 import IpTracker from './components/Calculator/IpTracker';
+import PingTester from './components/Calculator/PingTester';
 import PlaceholderPage from './components/PlaceholderPage';
 import TodoApp from './components/Todo/TodoApp';
 
@@ -38,6 +39,8 @@ function App() {
                 return <Ipv6Calculator />;
             case 'trace':
                 return <IpTracker />;
+            case 'ping':
+                return <PingTester />;
             case 'port':
                 return <PortScanner />;
             case 'contact':

@@ -310,7 +310,108 @@ def whois_lookup():
     return jsonify(result_data)
 
 
+@app.route('/api/ping', methods=['POST'])
+def ping_host():
+    """안전한 시스템 ping 명령을 사용한 호스트 진단"""
+    import subprocess
+    import platform
+    import re
+    
+    try:
+        data = request.json or {}
+        host = data.get('host', '').strip()
+        count = int(data.get('count', 4))
+        timeout = int(data.get('timeout', 3))
+        
+        if not host:
+            return jsonify({'error': '호스트 이름 또는 IP 주소를 입력하세요.'}), 400
+            
+        # 1-10회 범위 제한, 타임아웃 1-5초 범위 제한 (Vercel/서버 자원 보호)
+        count = max(1, min(count, 10))
+        timeout = max(1, min(timeout, 5))
+        
+        # 보안 필터링: Command Injection 방지 (영문자, 숫자, 마침표, 하이픈만 허용)
+        if not re.match(r'^[a-zA-Z0-9.-]+$', host):
+            return jsonify({'error': '올바르지 않은 호스트 이름 또는 IP 주소 형식입니다.'}), 400
+            
+        system_name = platform.system().lower()
+        if 'windows' in system_name:
+            cmd = ['ping', '-n', str(count), '-w', str(timeout * 1000), host]
+        else:
+            cmd = ['ping', '-c', str(count), '-W', str(timeout), host]
+            
+        # shell=False로 실행하여 명령어 주입 완벽히 차단
+        process = subprocess.run(
+            cmd,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            timeout=(timeout * count) + 5
+        )
+        
+        stdout = process.stdout
+        stderr = process.stderr
+        
+        # 핑 응답 통계 파싱 시도 (프리미엄 요약 카드용)
+        stats = {
+            'sent': count,
+            'received': 0,
+            'lost': count,
+            'loss_rate': 100,
+            'min_time': None,
+            'avg_time': None,
+            'max_time': None
+        }
+        
+        # Windows 핑 결과 파싱
+        if 'windows' in system_name:
+            # 패킷 통계 찾기 (예: 보냄 = 4, 받음 = 4, 손실 = 0)
+            packet_match = re.search(r'(=|:)\s*(\d+),\s*(받음|Received)\s*=\s*(\d+),\s*(손실|Lost)\s*=\s*(\d+)', stdout)
+            if packet_match:
+                stats['sent'] = int(packet_match.group(2))
+                stats['received'] = int(packet_match.group(4))
+                stats['lost'] = int(packet_match.group(6))
+                if stats['sent'] > 0:
+                    stats['loss_rate'] = round((stats['lost'] / stats['sent']) * 100)
+            
+            # 왕복 시간 찾기 (예: 최소 = 11ms, 최대 = 15ms, 평균 = 13ms)
+            time_match = re.search(r'(최소|Minimum)\s*=\s*(\d+)ms,\s*(최대|Maximum)\s*=\s*(\d+)ms,\s*(평균|Average)\s*=\s*(\d+)ms', stdout)
+            if time_match:
+                stats['min_time'] = float(time_match.group(2))
+                stats['max_time'] = float(time_match.group(4))
+                stats['avg_time'] = float(time_match.group(6))
+        # Linux / Mac 핑 결과 파싱
+        else:
+            # 패킷 통계 찾기 (예: 4 packets transmitted, 4 received, 0% packet loss)
+            packet_match = re.search(r'(\d+)\s*packets\s*transmitted,\s*(\d+)\s*(packets\s*)?received,\s*(\d+)%\s*packet\s*loss', stdout, re.IGNORECASE)
+            if packet_match:
+                stats['sent'] = int(packet_match.group(1))
+                stats['received'] = int(packet_match.group(2))
+                stats['lost'] = stats['sent'] - stats['received']
+                stats['loss_rate'] = int(packet_match.group(4))
+            
+            # 왕복 시간 찾기 (예: rtt min/avg/max/mdev = 11.234/13.456/15.789/1.020 ms)
+            time_match = re.search(r'(rtt|round-trip)\s*min/avg/max/m?dev\s*=\s*([\d.]+)/([\d.]+)/([\d.]+)/([\d.]+)', stdout, re.IGNORECASE)
+            if time_match:
+                stats['min_time'] = float(time_match.group(2))
+                stats['avg_time'] = float(time_match.group(3))
+                stats['max_time'] = float(time_match.group(4))
+
+        return jsonify({
+            'success': process.returncode == 0 and stats['received'] > 0,
+            'stdout': stdout,
+            'stderr': stderr,
+            'code': process.returncode,
+            'stats': stats
+        })
+        
+    except subprocess.TimeoutExpired:
+        return jsonify({'error': '핑 테스트 시간 초과(Timeout)가 발생했습니다.'}), 504
+    except Exception as e:
+        return jsonify({'error': f'핑 테스트 진행 중 에러가 발생했습니다: {str(e)}'}), 500
+
 
 # Vercel이 이 app 객체를 사용함
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)
+

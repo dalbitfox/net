@@ -1,0 +1,397 @@
+import React, { useState, useEffect, useRef } from 'react';
+
+const PingTester = () => {
+    const [host, setHost] = useState('8.8.8.8');
+    const [count, setCount] = useState(4);
+    const [timeout, setTimeoutVal] = useState(3);
+    const [loading, setLoading] = useState(false);
+    const [terminalLines, setTerminalLines] = useState([]);
+    const [stats, setStats] = useState(null);
+    const [error, setError] = useState('');
+    const terminalEndRef = useRef(null);
+
+    const presets = [
+        { name: 'Google DNS', address: '8.8.8.8' },
+        { name: 'Cloudflare DNS', address: '1.1.1.1' },
+        { name: 'Localhost', address: '127.0.0.1' },
+        { name: 'Gateway', address: '192.168.0.1' }
+    ];
+
+    useEffect(() => {
+        if (terminalEndRef.current) {
+            terminalEndRef.current.scrollIntoView({ behavior: 'smooth' });
+        }
+    }, [terminalLines]);
+
+    const handlePing = async (e) => {
+        if (e) e.preventDefault();
+        const trimmedHost = host.trim();
+        if (!trimmedHost) {
+            setError('호스트 이름 또는 IP 주소를 입력하세요.');
+            return;
+        }
+
+        setLoading(true);
+        setError('');
+        setStats(null);
+        setTerminalLines([
+            `$ ping -c ${count} -W ${timeout} ${trimmedHost}`,
+            `Ping 테스트 시작 중... 호스트 연결을 확인합니다.`
+        ]);
+
+        try {
+            const response = await fetch('/api/ping', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    host: trimmedHost,
+                    count: count,
+                    timeout: timeout
+                })
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(data.error || 'API 요청 실패');
+            }
+
+            // 터미널 텍스트 라인 단위 쪼개기
+            const rawLines = data.stdout ? data.stdout.split('\n') : [];
+            const cleanLines = rawLines.filter(line => line.trim() !== '');
+
+            // 실제 터미널 출력처럼 순차적(Staggered) 출력 연출 (프리미엄 체감 향상)
+            for (let i = 0; i < cleanLines.length; i++) {
+                await new Promise(resolve => setTimeout(resolve, 150));
+                setTerminalLines(prev => [...prev, cleanLines[i]]);
+            }
+
+            if (data.success) {
+                setStats(data.stats);
+                setTerminalLines(prev => [
+                    ...prev,
+                    '',
+                    `[SYSTEM] 핑 테스트 완료: 응답 응답 수신율 안정적.`
+                ]);
+            } else {
+                setStats(data.stats || null);
+                if (data.stderr) {
+                    setTerminalLines(prev => [...prev, `[ERROR] ${data.stderr}`]);
+                }
+                setTerminalLines(prev => [
+                    ...prev,
+                    '',
+                    `[SYSTEM] 핑 실패: 대상 호스트가 무응답이거나 연결할 수 없습니다.`
+                ]);
+            }
+        } catch (err) {
+            setError(err.message);
+            setTerminalLines(prev => [
+                ...prev,
+                '',
+                `❌ 에러 발생: ${err.message}`
+            ]);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handlePresetClick = (address) => {
+        if (!loading) {
+            setHost(address);
+        }
+    };
+
+    return (
+        <div className="calculator-container fade-in-enter">
+            {/* 설정 카드 */}
+            <div className="card">
+                <div className="mb-6">
+                    <h2 className="info-title" style={{ fontSize: '1.4rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        📡 Ping 응답 및 지연 시간 테스트 (ICMP)
+                    </h2>
+                    <p style={{ color: 'var(--text-secondary)', marginBottom: '1.5rem', fontSize: '0.9rem' }}>
+                        대상 서버의 IP 또는 도메인을 입력하여 네트워크 연결 상태와 실시간 전송 지연 시간(Latency)을 측정합니다.
+                    </p>
+
+                    {/* 프리셋 영역 */}
+                    <div style={{ marginBottom: '1.5rem', display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
+                        <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginRight: '0.5rem' }}>빠른 선택:</span>
+                        {presets.map((preset, idx) => (
+                            <button
+                                key={idx}
+                                type="button"
+                                onClick={() => handlePresetClick(preset.address)}
+                                disabled={loading}
+                                style={{
+                                    padding: '0.4rem 0.8rem',
+                                    fontSize: '0.8rem',
+                                    borderRadius: '20px',
+                                    backgroundColor: host === preset.address ? 'rgba(0, 191, 255, 0.15)' : 'var(--bg-tertiary)',
+                                    color: host === preset.address ? 'var(--accent)' : 'var(--text-secondary)',
+                                    border: host === preset.address ? '1px solid var(--accent)' : '1px solid var(--border-color)',
+                                    cursor: loading ? 'not-allowed' : 'pointer',
+                                    transition: 'all 0.2s',
+                                    fontWeight: '600'
+                                }}
+                            >
+                                {preset.name} ({preset.address})
+                            </button>
+                        ))}
+                    </div>
+
+                    <form onSubmit={handlePing} className="flex gap-4 items-end" style={{ flexWrap: 'wrap' }}>
+                        {/* 대상 호스트 */}
+                        <div className="input-group" style={{ flexGrow: 3, minWidth: '250px' }}>
+                            <label className="input-label">호스트 주소 (도메인 또는 IP)</label>
+                            <input
+                                type="text"
+                                placeholder="예: 8.8.8.8 또는 google.com"
+                                value={host}
+                                onChange={(e) => setHost(e.target.value)}
+                                className="input-highlight"
+                                required
+                                disabled={loading}
+                            />
+                        </div>
+
+                        {/* 요청 횟수 */}
+                        <div className="input-group" style={{ flexGrow: 1, minWidth: '100px' }}>
+                            <label className="input-label">전송 횟수</label>
+                            <select
+                                value={count}
+                                onChange={(e) => setCount(parseInt(e.target.value))}
+                                disabled={loading}
+                                style={{ fontWeight: '700' }}
+                            >
+                                <option value="2">2회</option>
+                                <option value="4">4회 (기본)</option>
+                                <option value="6">6회</option>
+                                <option value="8">8회</option>
+                                <option value="10">10회</option>
+                            </select>
+                        </div>
+
+                        {/* 타임아웃 */}
+                        <div className="input-group" style={{ flexGrow: 1, minWidth: '100px' }}>
+                            <label className="input-label">허용 시간 (초)</label>
+                            <select
+                                value={timeout}
+                                onChange={(e) => setTimeoutVal(parseInt(e.target.value))}
+                                disabled={loading}
+                                style={{ fontWeight: '700' }}
+                            >
+                                <option value="1">1초</option>
+                                <option value="2">2초</option>
+                                <option value="3">3초 (기본)</option>
+                                <option value="4">4초</option>
+                                <option value="5">5초</option>
+                            </select>
+                        </div>
+
+                        {/* 실행 버튼 */}
+                        <button
+                            type="submit"
+                            disabled={loading}
+                            style={{
+                                padding: '1rem 2rem',
+                                backgroundColor: loading ? 'var(--bg-tertiary)' : 'var(--accent)',
+                                color: loading ? 'var(--text-secondary)' : 'var(--bg-primary)',
+                                border: 'none',
+                                borderRadius: '6px',
+                                fontSize: '1.1rem',
+                                fontWeight: 'bold',
+                                cursor: loading ? 'not-allowed' : 'pointer',
+                                transition: 'all 0.2s',
+                                whiteSpace: 'nowrap'
+                            }}
+                            onMouseOver={(e) => { if (!loading) e.target.style.boxShadow = '0 0 10px var(--accent-glow)'; }}
+                            onMouseOut={(e) => { e.target.style.boxShadow = 'none'; }}
+                        >
+                            {loading ? '테스트 중...' : '테스트 시작'}
+                        </button>
+                    </form>
+
+                    {error && (
+                        <div style={{
+                            marginTop: '1.5rem', padding: '1rem',
+                            backgroundColor: 'rgba(255, 69, 58, 0.1)',
+                            color: '#ff453a', border: '1px solid #ff453a',
+                            borderRadius: '6px', fontWeight: 'bold'
+                        }}>
+                            ❌ {error}
+                        </div>
+                    )}
+                </div>
+            </div>
+
+            {/* 터미널 출력 및 통계 영역 */}
+            {(terminalLines.length > 0 || stats) && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                    {/* 통계 요약 (완료 시) */}
+                    {stats && (
+                        <div className="card" style={{ borderLeft: `6px solid ${stats.loss_rate === 0 ? 'var(--highlight-green)' : stats.loss_rate === 100 ? '#ff453a' : 'var(--highlight-yellow)'}`, padding: '1.5rem' }}>
+                            <h3 className="info-title" style={{ marginBottom: '1.5rem', fontSize: '1.1rem' }}>
+                                📊 분석 결과 요약
+                            </h3>
+                            <div className="grid grid-cols-1 md-grid-cols-2 gap-6">
+                                {/* 패킷 정보 */}
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem' }}>
+                                    <div className="input-group">
+                                        <span className="input-label">패킷 송수신 상태</span>
+                                        <div className="input-display" style={{ minHeight: '3rem', fontSize: '1rem' }}>
+                                            보냄: <strong style={{ color: 'var(--accent)', marginLeft: '4px', marginRight: '10px' }}>{stats.sent}</strong> 
+                                            받음: <strong style={{ color: 'var(--highlight-green)', marginLeft: '4px', marginRight: '10px' }}>{stats.received}</strong> 
+                                            손실: <strong style={{ color: stats.lost > 0 ? '#ff453a' : 'var(--text-secondary)', marginLeft: '4px' }}>{stats.lost}</strong>
+                                        </div>
+                                    </div>
+                                    <div className="input-group">
+                                        <span className="input-label">패킷 손실률</span>
+                                        <div className="input-display" style={{ minHeight: '3rem', fontSize: '1.1rem', color: stats.loss_rate === 0 ? 'var(--highlight-green)' : stats.loss_rate === 100 ? '#ff453a' : 'var(--highlight-yellow)' }}>
+                                            {stats.loss_rate}% {stats.loss_rate === 0 ? '🟢 안정적' : stats.loss_rate === 100 ? '🔴 연결 끊김' : '🟡 불안정'}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* 지연 시간 */}
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem' }}>
+                                    <div className="input-group">
+                                        <span className="input-label">응답 시간 (RTT)</span>
+                                        <div className="input-display text-blue" style={{ minHeight: '3rem', fontSize: '1rem' }}>
+                                            {stats.avg_time !== null ? (
+                                                <>
+                                                    최소: <strong>{stats.min_time}ms</strong> | 평균: <strong>{stats.avg_time}ms</strong> | 최대: <strong>{stats.max_time}ms</strong>
+                                                </>
+                                            ) : (
+                                                <span style={{ color: 'var(--text-secondary)' }}>시간 정보 없음 (연결 무응답)</span>
+                                            )}
+                                        </div>
+                                    </div>
+                                    <div className="input-group">
+                                        <span className="input-label">현재 연결 상태</span>
+                                        <div className="input-display" style={{ minHeight: '3rem', fontSize: '1.1rem', color: stats.received > 0 ? 'var(--highlight-green)' : '#ff453a' }}>
+                                            {stats.received > 0 ? 'ONLINE' : 'OFFLINE'}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* 터미널 윈도우 */}
+                    <div style={{
+                        borderRadius: '10px',
+                        overflow: 'hidden',
+                        boxShadow: '0 10px 30px rgba(0, 0, 0, 0.4)',
+                        border: '1px solid #333'
+                    }}>
+                        {/* 터미널 타이틀바 */}
+                        <div style={{
+                            backgroundColor: '#222',
+                            padding: '0.6rem 1rem',
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            borderBottom: '1px solid #333'
+                        }}>
+                            <div style={{ display: 'flex', gap: '6px' }}>
+                                <span style={{ width: '12px', height: '12px', borderRadius: '50%', backgroundColor: '#ff5f56', display: 'inline-block' }}></span>
+                                <span style={{ width: '12px', height: '12px', borderRadius: '50%', backgroundColor: '#ffbd2e', display: 'inline-block' }}></span>
+                                <span style={{ width: '12px', height: '12px', borderRadius: '50%', backgroundColor: '#27c93f', display: 'inline-block' }}></span>
+                            </div>
+                            <span style={{ color: '#aaa', fontSize: '0.8rem', fontFamily: 'monospace', fontWeight: 'bold' }}>
+                                Terminal - ping_diagnose@{host}
+                            </span>
+                            <span style={{ width: '40px' }}></span> {/* Balance spacer */}
+                        </div>
+
+                        {/* 터미널 내용 */}
+                        <div style={{
+                            backgroundColor: '#121212',
+                            color: '#33ff33',
+                            padding: '1.5rem',
+                            fontFamily: '"Fira Code", "Courier New", Courier, monospace',
+                            fontSize: '0.9rem',
+                            minHeight: '220px',
+                            maxHeight: '400px',
+                            overflowY: 'auto',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: '0.4rem',
+                            lineHeight: '1.4',
+                            boxShadow: 'inset 0 0 10px rgba(0,0,0,0.8)'
+                        }}>
+                            {terminalLines.map((line, idx) => (
+                                <div 
+                                    key={idx} 
+                                    style={{ 
+                                        whiteSpace: 'pre-wrap', 
+                                        wordBreak: 'break-all',
+                                        color: line.startsWith('$') ? '#00bfff' : 
+                                               line.startsWith('❌') || line.startsWith('[ERROR]') ? '#ff453a' : 
+                                               line.startsWith('✔') || line.startsWith('[SYSTEM]') ? '#32cd32' : '#33ff33'
+                                    }}
+                                >
+                                    {line}
+                                </div>
+                            ))}
+                            {loading && (
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#ffbd2e' }}>
+                                    <span>Pinging...</span>
+                                    <span className="cursor-blink" style={{
+                                        width: '8px',
+                                        height: '15px',
+                                        backgroundColor: '#ffbd2e',
+                                        display: 'inline-block',
+                                        animation: 'blink 1s step-end infinite'
+                                    }}></span>
+                                </div>
+                            )}
+                            <div ref={terminalEndRef} />
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* 설명 카드 */}
+            <div className="card info-box">
+                <h3 className="info-title">Ping & ICMP 진단 설명</h3>
+                <div className="info-grid">
+                    <div className="info-item md-col-span-2">
+                        <span className="info-label">원리 안내:</span>
+                        <span>
+                            Ping은 ICMP(Internet Control Message Protocol)의 Echo Request 메세지를 전송한 후, 대상으로부터 Echo Reply 수신 여부와 왕복 시간(RTT)을 측정하는 진단 도구입니다.
+                        </span>
+                    </div>
+                    <div className="info-item">
+                        <span className="info-label">지연 시간(RTT):</span>
+                        <span>
+                            패킷이 출발지에서 목적지까지 도달했다가 다시 되돌아오는 데 걸린 시간입니다. 낮을수록 연결 반응 속도가 우수함을 뜻합니다. (보통 50ms 미만 매우 우수, 150ms 이상 반응 지연)
+                        </span>
+                    </div>
+                    <div className="info-item">
+                        <span className="info-label">패킷 손실률:</span>
+                        <span>
+                            보낸 패킷 중 응답을 받지 못한 비율입니다. 0% 손실이 정상적인 네트워크이며, 조금이라도 패킷 손실이 발생하면 통신 단절, 지연, 파일 손상 등의 요인이 됩니다.
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            {/* 애니메이션 스타일 키프레임 */}
+            <style>{`
+                @keyframes blink {
+                    from, to { background-color: transparent }
+                    50% { background-color: #ffbd2e }
+                }
+                .cursor-blink {
+                    animation: blink 1s step-end infinite;
+                }
+            `}</style>
+        </div>
+    );
+};
+
+export default PingTester;
