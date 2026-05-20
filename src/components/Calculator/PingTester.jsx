@@ -20,7 +20,7 @@ const PingTester = () => {
         { name: 'Google DNS', address: '8.8.8.8' },
         { name: 'Cloudflare DNS', address: '1.1.1.1' },
         { name: 'LGU+ DNS', address: '203.248.252.2' },
-        { name: 'Localhost', address: '127.0.0.1' }
+        { name: 'KT DNS', address: '168.126.63.1' }
     ]);
 
     const stopRef = useRef(false);
