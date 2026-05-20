@@ -518,7 +518,7 @@ const PingTester = () => {
                 }
                 @media (min-width: 768px) {
                     .ping-results-grid {
-                        grid-template-columns: 3.8fr 6.2fr !important;
+                        grid-template-columns: 4fr 6fr !important;
                     }
                 }
             `}</style>
