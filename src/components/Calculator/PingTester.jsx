@@ -5,7 +5,11 @@ const PingTester = () => {
     const [count, setCount] = useState(4);
     const [timeout, setTimeoutVal] = useState(3);
     const [loading, setLoading] = useState(false);
-    const [terminalLines, setTerminalLines] = useState([]);
+    const [terminalLines, setTerminalLines] = useState([
+        'Welcome to Network Ping Diagnostics Utility.',
+        'Enter a host address above and click "테스트 시작" to begin.',
+        'Ready.'
+    ]);
     const [stats, setStats] = useState(null);
     const [error, setError] = useState('');
     const terminalEndRef = useRef(null);
@@ -13,34 +17,24 @@ const PingTester = () => {
     const [presets, setPresets] = useState([
         { name: 'Google DNS', address: '8.8.8.8' },
         { name: 'Cloudflare DNS', address: '1.1.1.1' },
+        { name: 'LGU+ DNS', address: '203.248.252.2' },
         { name: 'Localhost', address: '127.0.0.1' }
     ]);
 
-    useEffect(() => {
-        const fetchGateway = async () => {
-            try {
-                const response = await fetch('/api/gateway');
-                if (response.ok) {
-                    const data = await response.json();
-                    if (data.success && data.gateway) {
-                        setPresets(prev => {
-                            if (prev.some(p => p.name === 'Gateway')) return prev;
-                            return [...prev, { name: 'Gateway', address: data.gateway }];
-                        });
-                    }
-                }
-            } catch (err) {
-                console.error('Failed to fetch gateway IP:', err);
-            }
-        };
-        fetchGateway();
-    }, []);
+    const [infiniteRunning, setInfiniteRunning] = useState(false);
+    const stopInfiniteRef = useRef(false);
 
     useEffect(() => {
         if (terminalEndRef.current) {
             terminalEndRef.current.scrollIntoView({ behavior: 'smooth' });
         }
     }, [terminalLines]);
+
+    const handleStopInfinite = () => {
+        stopInfiniteRef.current = true;
+        setInfiniteRunning(false);
+        setLoading(false);
+    };
 
     const handlePing = async (e) => {
         if (e) e.preventDefault();
@@ -50,70 +44,162 @@ const PingTester = () => {
             return;
         }
 
-        setLoading(true);
         setError('');
         setStats(null);
-        setTerminalLines([
-            `$ ping -c ${count} -W ${timeout} ${trimmedHost}`,
-            `Ping 테스트 시작 중... 호스트 연결을 확인합니다.`
-        ]);
 
-        try {
-            const response = await fetch('/api/ping', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    host: trimmedHost,
-                    count: count,
-                    timeout: timeout
-                })
-            });
-
-            const data = await response.json();
-
-            if (!response.ok) {
-                throw new Error(data.error || 'API 요청 실패');
-            }
-
-            // 터미널 텍스트 라인 단위 쪼개기
-            const rawLines = data.stdout ? data.stdout.split('\n') : [];
-            const cleanLines = rawLines.filter(line => line.trim() !== '');
-
-            // 실제 터미널 출력처럼 순차적(Staggered) 출력 연출 (프리미엄 체감 향상)
-            for (let i = 0; i < cleanLines.length; i++) {
-                await new Promise(resolve => setTimeout(resolve, 150));
-                setTerminalLines(prev => [...prev, cleanLines[i]]);
-            }
-
-            if (data.success) {
-                setStats(data.stats);
-                setTerminalLines(prev => [
-                    ...prev,
-                    '',
-                    `[SYSTEM] 핑 테스트 완료: 응답 응답 수신율 안정적.`
-                ]);
-            } else {
-                setStats(data.stats || null);
-                if (data.stderr) {
-                    setTerminalLines(prev => [...prev, `[ERROR] ${data.stderr}`]);
-                }
-                setTerminalLines(prev => [
-                    ...prev,
-                    '',
-                    `[SYSTEM] 핑 실패: 대상 호스트가 무응답이거나 연결할 수 없습니다.`
-                ]);
-            }
-        } catch (err) {
-            setError(err.message);
-            setTerminalLines(prev => [
-                ...prev,
-                '',
-                `❌ 에러 발생: ${err.message}`
+        if (count === 'infinite') {
+            setLoading(true);
+            setInfiniteRunning(true);
+            stopInfiniteRef.current = false;
+            
+            setTerminalLines([
+                `$ ping -t ${trimmedHost}`,
+                `Ping 무한 테스트 시작 중... (중지하려면 '테스트 중지'를 클릭하세요)`,
+                `Pinging ${trimmedHost} with 32 bytes of data:`
             ]);
-        } finally {
-            setLoading(false);
+
+            let sent = 0;
+            let received = 0;
+            let lost = 0;
+            let rtts = [];
+
+            try {
+                while (!stopInfiniteRef.current) {
+                    const response = await fetch('/api/ping', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            host: trimmedHost,
+                            count: 1,
+                            timeout: timeout
+                        })
+                    });
+
+                    if (stopInfiniteRef.current) break;
+
+                    const data = await response.json();
+                    
+                    if (stopInfiniteRef.current) break;
+
+                    sent += 1;
+                    if (response.ok && data.success) {
+                        received += 1;
+                        const rtt = data.stats && data.stats.avg_time !== null ? data.stats.avg_time : 10.0;
+                        rtts.push(rtt);
+                        
+                        setTerminalLines(prev => [
+                            ...prev,
+                            `Reply from ${trimmedHost}: bytes=32 time=${rtt.toFixed(2)}ms TTL=64`
+                        ]);
+                    } else {
+                        lost += 1;
+                        const errMsg = data.error || 'Request timed out.';
+                        setTerminalLines(prev => [
+                            ...prev,
+                            `Request timed out for ${trimmedHost} (${errMsg})`
+                        ]);
+                    }
+
+                    // 실시간 통계 계산 및 업데이트
+                    const lossRate = Math.round((lost / sent) * 100);
+                    setStats({
+                        sent,
+                        received,
+                        lost,
+                        loss_rate: lossRate,
+                        min_time: rtts.length > 0 ? Math.min(...rtts) : null,
+                        avg_time: rtts.length > 0 ? Math.round((rtts.reduce((a, b) => a + b, 0) / rtts.length) * 10) / 10 : null,
+                        max_time: rtts.length > 0 ? Math.max(...rtts) : null
+                    });
+
+                    // 1초 지연 후 다음 핑 전송 (정식 ICMP 간격 준수)
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+                }
+                
+                setTerminalLines(prev => [
+                    ...prev,
+                    '',
+                    `[SYSTEM] 무한 핑 테스트 중지됨. 총 ${sent}회 전송 완료.`
+                ]);
+            } catch (err) {
+                if (!stopInfiniteRef.current) {
+                    setError(err.message);
+                    setTerminalLines(prev => [
+                        ...prev,
+                        `❌ 에러 발생: ${err.message}`
+                    ]);
+                }
+            } finally {
+                setLoading(false);
+                setInfiniteRunning(false);
+            }
+        } else {
+            // 기존 단일 횟수 핑 로직
+            setLoading(true);
+            setTerminalLines([
+                `$ ping -c ${count} -W ${timeout} ${trimmedHost}`,
+                `Ping 테스트 시작 중... 호스트 연결을 확인합니다.`
+            ]);
+
+            try {
+                const response = await fetch('/api/ping', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        host: trimmedHost,
+                        count: count,
+                        timeout: timeout
+                    })
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.error || 'API 요청 실패');
+                }
+
+                // 터미널 텍스트 라인 단위 쪼개기
+                const rawLines = data.stdout ? data.stdout.split('\n') : [];
+                const cleanLines = rawLines.filter(line => line.trim() !== '');
+
+                // 실제 터미널 출력처럼 순차적(Staggered) 출력 연출 (프리미엄 체감 향상)
+                for (let i = 0; i < cleanLines.length; i++) {
+                    await new Promise(resolve => setTimeout(resolve, 150));
+                    setTerminalLines(prev => [...prev, cleanLines[i]]);
+                }
+
+                if (data.success) {
+                    setStats(data.stats);
+                    setTerminalLines(prev => [
+                        ...prev,
+                        '',
+                        `[SYSTEM] 핑 테스트 완료: 응답 수신율 안정적.`
+                    ]);
+                } else {
+                    setStats(data.stats || null);
+                    if (data.stderr) {
+                        setTerminalLines(prev => [...prev, `[ERROR] ${data.stderr}`]);
+                    }
+                    setTerminalLines(prev => [
+                        ...prev,
+                        '',
+                        `[SYSTEM] 핑 실패: 대상 호스트가 무응답이거나 연결할 수 없습니다.`
+                    ]);
+                }
+            } catch (err) {
+                setError(err.message);
+                setTerminalLines(prev => [
+                    ...prev,
+                    '',
+                    `❌ 에러 발생: ${err.message}`
+                ]);
+            } finally {
+                setLoading(false);
+            }
         }
     };
 
@@ -161,7 +247,7 @@ const PingTester = () => {
                         ))}
                     </div>
 
-                    <form onSubmit={handlePing} className="flex gap-4 items-end" style={{ flexWrap: 'wrap' }}>
+                    <form onSubmit={infiniteRunning ? (e) => e.preventDefault() : handlePing} className="flex gap-4 items-end" style={{ flexWrap: 'wrap' }}>
                         {/* 대상 호스트 */}
                         <div className="input-group" style={{ flexGrow: 3, minWidth: '250px' }}>
                             <label className="input-label">호스트 주소 (도메인 또는 IP)</label>
@@ -172,7 +258,7 @@ const PingTester = () => {
                                 onChange={(e) => setHost(e.target.value)}
                                 className="input-highlight"
                                 required
-                                disabled={loading}
+                                disabled={loading && !infiniteRunning}
                             />
                         </div>
 
@@ -181,8 +267,11 @@ const PingTester = () => {
                             <label className="input-label">전송 횟수</label>
                             <select
                                 value={count}
-                                onChange={(e) => setCount(parseInt(e.target.value))}
-                                disabled={loading}
+                                onChange={(e) => {
+                                    const val = e.target.value;
+                                    setCount(val === 'infinite' ? 'infinite' : parseInt(val));
+                                }}
+                                disabled={loading && !infiniteRunning}
                                 style={{ fontWeight: '700' }}
                             >
                                 <option value="2">2회</option>
@@ -190,6 +279,7 @@ const PingTester = () => {
                                 <option value="6">6회</option>
                                 <option value="8">8회</option>
                                 <option value="10">10회</option>
+                                <option value="infinite">무한 (지속)</option>
                             </select>
                         </div>
 
@@ -199,7 +289,7 @@ const PingTester = () => {
                             <select
                                 value={timeout}
                                 onChange={(e) => setTimeoutVal(parseInt(e.target.value))}
-                                disabled={loading}
+                                disabled={loading && !infiniteRunning}
                                 style={{ fontWeight: '700' }}
                             >
                                 <option value="1">1초</option>
@@ -210,26 +300,27 @@ const PingTester = () => {
                             </select>
                         </div>
 
-                        {/* 실행 버튼 */}
+                        {/* 실행 및 중지 버튼 */}
                         <button
-                            type="submit"
-                            disabled={loading}
+                            type={infiniteRunning ? "button" : "submit"}
+                            onClick={infiniteRunning ? handleStopInfinite : undefined}
+                            disabled={loading && !infiniteRunning}
                             style={{
                                 padding: '1rem 2rem',
-                                backgroundColor: loading ? 'var(--bg-tertiary)' : 'var(--accent)',
-                                color: loading ? 'var(--text-secondary)' : 'var(--bg-primary)',
+                                backgroundColor: infiniteRunning ? '#ff453a' : loading ? 'var(--bg-tertiary)' : 'var(--accent)',
+                                color: infiniteRunning ? '#fff' : loading ? 'var(--text-secondary)' : 'var(--bg-primary)',
                                 border: 'none',
                                 borderRadius: '6px',
                                 fontSize: '1.1rem',
                                 fontWeight: 'bold',
-                                cursor: loading ? 'not-allowed' : 'pointer',
+                                cursor: loading && !infiniteRunning ? 'not-allowed' : 'pointer',
                                 transition: 'all 0.2s',
                                 whiteSpace: 'nowrap'
                             }}
-                            onMouseOver={(e) => { if (!loading) e.target.style.boxShadow = '0 0 10px var(--accent-glow)'; }}
+                            onMouseOver={(e) => { if (!loading || infiniteRunning) e.target.style.boxShadow = infiniteRunning ? '0 0 10px rgba(255, 69, 58, 0.6)' : '0 0 10px var(--accent-glow)'; }}
                             onMouseOut={(e) => { e.target.style.boxShadow = 'none'; }}
                         >
-                            {loading ? '테스트 중...' : '테스트 시작'}
+                            {infiniteRunning ? '테스트 중지' : loading ? '테스트 중...' : '테스트 시작'}
                         </button>
                     </form>
 
@@ -247,135 +338,133 @@ const PingTester = () => {
             </div>
 
             {/* 터미널 출력 및 통계 영역 */}
-            {(terminalLines.length > 0 || stats) && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-                    {/* 통계 요약 (완료 시) */}
-                    {stats && (
-                        <div className="card" style={{ borderLeft: `6px solid ${stats.loss_rate === 0 ? 'var(--highlight-green)' : stats.loss_rate === 100 ? '#ff453a' : 'var(--highlight-yellow)'}`, padding: '1.5rem' }}>
-                            <h3 className="info-title" style={{ marginBottom: '1.5rem', fontSize: '1.1rem' }}>
-                                📊 분석 결과 요약
-                            </h3>
-                            <div className="grid grid-cols-1 md-grid-cols-2 gap-6">
-                                {/* 패킷 정보 */}
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem' }}>
-                                    <div className="input-group">
-                                        <span className="input-label">패킷 송수신 상태</span>
-                                        <div className="input-display" style={{ minHeight: '3rem', fontSize: '1rem' }}>
-                                            보냄: <strong style={{ color: 'var(--accent)', marginLeft: '4px', marginRight: '10px' }}>{stats.sent}</strong> 
-                                            받음: <strong style={{ color: 'var(--highlight-green)', marginLeft: '4px', marginRight: '10px' }}>{stats.received}</strong> 
-                                            손실: <strong style={{ color: stats.lost > 0 ? '#ff453a' : 'var(--text-secondary)', marginLeft: '4px' }}>{stats.lost}</strong>
-                                        </div>
-                                    </div>
-                                    <div className="input-group">
-                                        <span className="input-label">패킷 손실률</span>
-                                        <div className="input-display" style={{ minHeight: '3rem', fontSize: '1.1rem', color: stats.loss_rate === 0 ? 'var(--highlight-green)' : stats.loss_rate === 100 ? '#ff453a' : 'var(--highlight-yellow)' }}>
-                                            {stats.loss_rate}% {stats.loss_rate === 0 ? '🟢 안정적' : stats.loss_rate === 100 ? '🔴 연결 끊김' : '🟡 불안정'}
-                                        </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                {/* 통계 요약 (기록이 있을 때만 조건부 렌더링) */}
+                {stats && (
+                    <div className="card" style={{ borderLeft: `6px solid ${stats.loss_rate === 0 ? 'var(--highlight-green)' : stats.loss_rate === 100 ? '#ff453a' : 'var(--highlight-yellow)'}`, padding: '1.5rem' }}>
+                        <h3 className="info-title" style={{ marginBottom: '1.5rem', fontSize: '1.1rem' }}>
+                            📊 분석 결과 요약 {infiniteRunning && ' (실시간 업데이트)'}
+                        </h3>
+                        <div className="grid grid-cols-1 md-grid-cols-2 gap-6">
+                            {/* 패킷 정보 */}
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem' }}>
+                                <div className="input-group">
+                                    <span className="input-label">패킷 송수신 상태</span>
+                                    <div className="input-display" style={{ minHeight: '3rem', fontSize: '1rem' }}>
+                                        보냄: <strong style={{ color: 'var(--accent)', marginLeft: '4px', marginRight: '10px' }}>{stats.sent}</strong> 
+                                        받음: <strong style={{ color: 'var(--highlight-green)', marginLeft: '4px', marginRight: '10px' }}>{stats.received}</strong> 
+                                        손실: <strong style={{ color: stats.lost > 0 ? '#ff453a' : 'var(--text-secondary)', marginLeft: '4px' }}>{stats.lost}</strong>
                                     </div>
                                 </div>
-
-                                {/* 지연 시간 */}
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem' }}>
-                                    <div className="input-group">
-                                        <span className="input-label">응답 시간 (RTT)</span>
-                                        <div className="input-display text-blue" style={{ minHeight: '3rem', fontSize: '1rem' }}>
-                                            {stats.avg_time !== null ? (
-                                                <>
-                                                    최소: <strong>{stats.min_time}ms</strong> | 평균: <strong>{stats.avg_time}ms</strong> | 최대: <strong>{stats.max_time}ms</strong>
-                                                </>
-                                            ) : (
-                                                <span style={{ color: 'var(--text-secondary)' }}>시간 정보 없음 (연결 무응답)</span>
-                                            )}
-                                        </div>
-                                    </div>
-                                    <div className="input-group">
-                                        <span className="input-label">현재 연결 상태</span>
-                                        <div className="input-display" style={{ minHeight: '3rem', fontSize: '1.1rem', color: stats.received > 0 ? 'var(--highlight-green)' : '#ff453a' }}>
-                                            {stats.received > 0 ? 'ONLINE' : 'OFFLINE'}
-                                        </div>
+                                <div className="input-group">
+                                    <span className="input-label">패킷 손실률</span>
+                                    <div className="input-display" style={{ minHeight: '3rem', fontSize: '1.1rem', color: stats.loss_rate === 0 ? 'var(--highlight-green)' : stats.loss_rate === 100 ? '#ff453a' : 'var(--highlight-yellow)' }}>
+                                        {stats.loss_rate}% {stats.loss_rate === 0 ? '🟢 안정적' : stats.loss_rate === 100 ? '🔴 연결 끊김' : '🟡 불안정'}
                                     </div>
                                 </div>
                             </div>
-                        </div>
-                    )}
 
-                    {/* 터미널 윈도우 */}
-                    <div style={{
-                        borderRadius: '10px',
-                        overflow: 'hidden',
-                        boxShadow: '0 10px 30px rgba(0, 0, 0, 0.4)',
-                        border: '1px solid #333'
-                    }}>
-                        {/* 터미널 타이틀바 */}
-                        <div style={{
-                            backgroundColor: '#222',
-                            padding: '0.6rem 1rem',
-                            display: 'flex',
-                            justifyContent: 'space-between',
-                            alignItems: 'center',
-                            borderBottom: '1px solid #333'
-                        }}>
-                            <div style={{ display: 'flex', gap: '6px' }}>
-                                <span style={{ width: '12px', height: '12px', borderRadius: '50%', backgroundColor: '#ff5f56', display: 'inline-block' }}></span>
-                                <span style={{ width: '12px', height: '12px', borderRadius: '50%', backgroundColor: '#ffbd2e', display: 'inline-block' }}></span>
-                                <span style={{ width: '12px', height: '12px', borderRadius: '50%', backgroundColor: '#27c93f', display: 'inline-block' }}></span>
+                            {/* 지연 시간 */}
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem' }}>
+                                <div className="input-group">
+                                    <span className="input-label">응답 시간 (RTT)</span>
+                                    <div className="input-display text-blue" style={{ minHeight: '3rem', fontSize: '1rem' }}>
+                                        {stats.avg_time !== null ? (
+                                            <>
+                                                최소: <strong>{stats.min_time}ms</strong> | 평균: <strong>{stats.avg_time}ms</strong> | 최대: <strong>{stats.max_time}ms</strong>
+                                            </>
+                                        ) : (
+                                            <span style={{ color: 'var(--text-secondary)' }}>시간 정보 없음 (연결 무응답)</span>
+                                        )}
+                                    </div>
+                                </div>
+                                <div className="input-group">
+                                    <span className="input-label">현재 연결 상태</span>
+                                    <div className="input-display" style={{ minHeight: '3rem', fontSize: '1.1rem', color: stats.received > 0 ? 'var(--highlight-green)' : '#ff453a' }}>
+                                        {stats.received > 0 ? 'ONLINE' : 'OFFLINE'}
+                                    </div>
+                                </div>
                             </div>
-                            <span style={{ color: '#aaa', fontSize: '0.8rem', fontFamily: 'monospace', fontWeight: 'bold' }}>
-                                Terminal - ping_diagnose@{host}
-                            </span>
-                            <span style={{ width: '40px' }}></span> {/* Balance spacer */}
-                        </div>
-
-                        {/* 터미널 내용 */}
-                        <div style={{
-                            backgroundColor: '#121212',
-                            color: '#33ff33',
-                            padding: '1.5rem',
-                            fontFamily: '"Fira Code", "Courier New", Courier, monospace',
-                            fontSize: '0.9rem',
-                            minHeight: '220px',
-                            maxHeight: '400px',
-                            overflowY: 'auto',
-                            display: 'flex',
-                            flexDirection: 'column',
-                            gap: '0.4rem',
-                            lineHeight: '1.4',
-                            boxShadow: 'inset 0 0 10px rgba(0,0,0,0.8)'
-                        }}>
-                            {terminalLines.map((line, idx) => (
-                                <div 
-                                    key={idx} 
-                                    style={{ 
-                                        whiteSpace: 'pre-wrap', 
-                                        wordBreak: 'break-all',
-                                        color: line.startsWith('$') ? '#00bfff' : 
-                                               line.startsWith('❌') || line.startsWith('[ERROR]') ? '#ff453a' : 
-                                               line.startsWith('✔') || line.startsWith('[SYSTEM]') ? '#32cd32' : '#33ff33'
-                                    }}
-                                >
-                                    {line}
-                                </div>
-                            ))}
-                            {loading && (
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#ffbd2e' }}>
-                                    <span>Pinging...</span>
-                                    <span className="cursor-blink" style={{
-                                        width: '8px',
-                                        height: '15px',
-                                        backgroundColor: '#ffbd2e',
-                                        display: 'inline-block',
-                                        animation: 'blink 1s step-end infinite'
-                                    }}></span>
-                                </div>
-                            )}
-                            <div ref={terminalEndRef} />
                         </div>
                     </div>
+                )}
+
+                {/* 터미널 윈도우 (최대 높이 400px 고정 상태로 항시 렌더링) */}
+                <div style={{
+                    borderRadius: '10px',
+                    overflow: 'hidden',
+                    boxShadow: '0 10px 30px rgba(0, 0, 0, 0.4)',
+                    border: '1px solid #333'
+                }}>
+                    {/* 터미널 타이틀바 */}
+                    <div style={{
+                        backgroundColor: '#222',
+                        padding: '0.6rem 1rem',
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        borderBottom: '1px solid #333'
+                    }}>
+                        <div style={{ display: 'flex', gap: '6px' }}>
+                            <span style={{ width: '12px', height: '12px', borderRadius: '50%', backgroundColor: '#ff5f56', display: 'inline-block' }}></span>
+                            <span style={{ width: '12px', height: '12px', borderRadius: '50%', backgroundColor: '#ffbd2e', display: 'inline-block' }}></span>
+                            <span style={{ width: '12px', height: '12px', borderRadius: '50%', backgroundColor: '#27c93f', display: 'inline-block' }}></span>
+                        </div>
+                        <span style={{ color: '#aaa', fontSize: '0.8rem', fontFamily: 'monospace', fontWeight: 'bold' }}>
+                            Terminal - ping_diagnose@{host}
+                        </span>
+                        <span style={{ width: '40px' }}></span>
+                    </div>
+
+                    {/* 터미널 내용 */}
+                    <div style={{
+                        backgroundColor: '#121212',
+                        color: '#33ff33',
+                        padding: '1.5rem',
+                        fontFamily: '"Fira Code", "Courier New", Courier, monospace',
+                        fontSize: '0.9rem',
+                        height: '400px',
+                        minHeight: '400px',
+                        maxHeight: '400px',
+                        overflowY: 'auto',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '0.4rem',
+                        lineHeight: '1.4',
+                        boxShadow: 'inset 0 0 10px rgba(0,0,0,0.8)'
+                    }}>
+                        {terminalLines.map((line, idx) => (
+                            <div 
+                                key={idx} 
+                                style={{ 
+                                    whiteSpace: 'pre-wrap', 
+                                    wordBreak: 'break-all',
+                                    color: line.startsWith('$') ? '#00bfff' : 
+                                           line.startsWith('❌') || line.startsWith('[ERROR]') ? '#ff453a' : 
+                                           line.startsWith('✔') || line.startsWith('[SYSTEM]') ? '#32cd32' : '#33ff33'
+                                }}
+                            >
+                                {line}
+                            </div>
+                        ))}
+                        {loading && (
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#ffbd2e' }}>
+                                <span>Pinging...</span>
+                                <span className="cursor-blink" style={{
+                                    width: '8px',
+                                    height: '15px',
+                                    backgroundColor: '#ffbd2e',
+                                    display: 'inline-block'
+                                }}></span>
+                            </div>
+                        )}
+                        <div ref={terminalEndRef} />
+                    </div>
                 </div>
-            )}
+            </div>
 
             {/* 설명 카드 */}
-            <div className="card info-box">
+            <div className="card info-box" style={{ marginTop: '1.5rem' }}>
                 <h3 className="info-title">Ping & ICMP 진단 설명</h3>
                 <div className="info-grid">
                     <div className="info-item md-col-span-2">
@@ -414,3 +503,4 @@ const PingTester = () => {
 };
 
 export default PingTester;
+
