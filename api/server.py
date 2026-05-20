@@ -421,16 +421,18 @@ def run_tcp_ping_fallback(host: str, count: int, timeout: int) -> dict:
             }
         }
 
-    ports = [80, 443, 22, 53, 135, 445, 8080]
+    # 53(DNS) 포트를 최우선 배치하여 DNS 서버 핑 감지율을 극대화
+    ports = [53, 80, 443, 22, 135, 445, 8080]
     selected_port = 80
     min_probe_time = 99999.0
     
     # 각 포트를 짧게 핑하여 가장 응답이 빠른(열려있거나 즉시 RST를 보내는) 포트 탐색
+    # Vercel 해외 리전과 국내 서버 간 레이턴시(보통 150ms 이상)를 고려해 타임아웃을 1.0초로 확장
     for p in ports:
         t_probe = time.perf_counter()
         try:
             s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            s.settimeout(0.15)
+            s.settimeout(1.0)
             res = s.connect_ex((ip_address, p))
             s.close()
             elapsed = (time.perf_counter() - t_probe) * 1000

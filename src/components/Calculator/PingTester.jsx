@@ -3,7 +3,7 @@ import React, { useState, useEffect, useRef } from 'react';
 const PingTester = () => {
     const [host, setHost] = useState('8.8.8.8');
     const [count, setCount] = useState(4);
-    const [timeout, setTimeoutVal] = useState(3);
+    const [timeout, setTimeoutVal] = useState(1);
     const [loading, setLoading] = useState(false);
     const [terminalLines, setTerminalLines] = useState([
         'Welcome to Network Ping Diagnostics Utility.',
