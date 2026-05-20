@@ -310,6 +310,116 @@ def whois_lookup():
     return jsonify(result_data)
 
 
+def run_tcp_ping_fallback(host: str, count: int, timeout: int) -> dict:
+    """
+    시스템 ping 명령어를 사용할 수 없는 경우(예: Vercel 서버리스 환경 등)
+    TCP 핸드셰이크를 이용해 지연 시간을 측정하는 Fallback 핑 함수
+    """
+    import time
+    try:
+        ip_address = socket.gethostbyname(host)
+    except socket.gaierror:
+        return {
+            'success': False,
+            'stdout': f"Ping request could not find host {host}. Please check the name and try again.",
+            'stderr': "Name or service not known",
+            'code': 1,
+            'stats': {
+                'sent': count,
+                'received': 0,
+                'lost': count,
+                'loss_rate': 100,
+                'min_time': None,
+                'avg_time': None,
+                'max_time': None
+            }
+        }
+
+    ports = [80, 443, 22, 53, 135, 445, 8080]
+    selected_port = 80
+    min_probe_time = 99999.0
+    
+    # 각 포트를 짧게 핑하여 가장 응답이 빠른(열려있거나 즉시 RST를 보내는) 포트 탐색
+    for p in ports:
+        t_probe = time.perf_counter()
+        try:
+            s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            s.settimeout(0.15)
+            res = s.connect_ex((ip_address, p))
+            s.close()
+            elapsed = (time.perf_counter() - t_probe) * 1000
+            
+            if elapsed < min_probe_time:
+                min_probe_time = elapsed
+                selected_port = p
+                if elapsed < 10.0:
+                    break
+        except Exception:
+            continue
+
+    rtts = []
+    received = 0
+    stdout_lines = [
+        f"Pinging {host} [{ip_address}] with TCP Handshake on port {selected_port}:",
+        f"[Fallback Mode] System 'ping' utility not found or restricted in this environment."
+    ]
+
+    for i in range(count):
+        t_start = time.perf_counter()
+        try:
+            s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            s.settimeout(float(timeout))
+            res = s.connect_ex((ip_address, selected_port))
+            s.close()
+            
+            rtt = (time.perf_counter() - t_start) * 1000
+            
+            # 0 (성공), 10061 (Windows Connection Refused), 111 (Linux Connection Refused), 61 (Mac Connection Refused)
+            # 모두 대상 호스트가 살아있어서 응답한 것으로 간주
+            if res in (0, 10061, 111, 61):
+                rtts.append(rtt)
+                received += 1
+                state_str = "open" if res == 0 else "closed"
+                stdout_lines.append(f"Reply from {ip_address}: port={selected_port} time={rtt:.2f}ms state={state_str}")
+            else:
+                stdout_lines.append(f"Request timed out for {ip_address} (port {selected_port}, error={res}).")
+        except socket.timeout:
+            stdout_lines.append(f"Request timed out for {ip_address} (port {selected_port}).")
+        except Exception as e:
+            stdout_lines.append(f"Error connecting to {ip_address}: {str(e)}")
+        
+        if i < count - 1:
+            time.sleep(0.1)
+
+    lost = count - received
+    loss_rate = round((lost / count) * 100) if count > 0 else 100
+
+    stats = {
+        'sent': count,
+        'received': received,
+        'lost': lost,
+        'loss_rate': loss_rate,
+        'min_time': round(min(rtts), 2) if rtts else None,
+        'avg_time': round(sum(rtts) / len(rtts), 2) if rtts else None,
+        'max_time': round(max(rtts), 2) if rtts else None
+    }
+
+    stdout_lines.append("")
+    stdout_lines.append(f"Ping statistics for {ip_address}:")
+    stdout_lines.append(f"    Packets: Sent = {count}, Received = {received}, Lost = {lost} ({loss_rate}% loss)")
+    if rtts:
+        stdout_lines.append("Approximate round trip times in milli-seconds:")
+        stdout_lines.append(f"    Minimum = {stats['min_time']:.2f}ms, Maximum = {stats['max_time']:.2f}ms, Average = {stats['avg_time']:.2f}ms")
+
+    return {
+        'success': received > 0,
+        'stdout': "\n".join(stdout_lines),
+        'stderr': "",
+        'code': 0 if received > 0 else 1,
+        'stats': stats
+    }
+
+
 @app.route('/api/ping', methods=['POST'])
 def ping_host():
     """안전한 시스템 ping 명령을 사용한 호스트 진단"""
@@ -341,16 +451,20 @@ def ping_host():
             cmd = ['ping', '-c', str(count), '-W', str(timeout), host]
             
         # shell=False로 실행하여 명령어 주입 완벽히 차단
-        process = subprocess.run(
-            cmd,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            text=True,
-            timeout=(timeout * count) + 5
-        )
-        
-        stdout = process.stdout
-        stderr = process.stderr
+        try:
+            process = subprocess.run(
+                cmd,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+                timeout=(timeout * count) + 5
+            )
+            stdout = process.stdout
+            stderr = process.stderr
+        except (FileNotFoundError, PermissionError, OSError):
+            # 시스템 ping 명령어가 없거나 실행 권한이 없는 경우 TCP fallback 실행
+            fallback_res = run_tcp_ping_fallback(host, count, timeout)
+            return jsonify(fallback_res)
         
         # 핑 응답 통계 파싱 시도 (프리미엄 요약 카드용)
         stats = {
