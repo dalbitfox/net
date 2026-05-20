@@ -286,9 +286,9 @@ const PingTester = () => {
                                 disabled={loading}
                                 style={{ fontWeight: '700' }}
                             >
-                                <option value="1">1초</option>
+                                <option value="1">1초 (기본)</option>
                                 <option value="2">2초</option>
-                                <option value="3">3초 (기본)</option>
+                                <option value="3">3초</option>
                                 <option value="4">4초</option>
                                 <option value="5">5초</option>
                             </select>
@@ -436,12 +436,12 @@ const PingTester = () => {
                             <h3 className="info-title" style={{ marginBottom: '1.5rem', fontSize: '1.1rem' }}>
                                 📊 분석 결과 요약 {loading && ' (실시간 업데이트)'}
                             </h3>
-                            <div className="grid grid-cols-1 md-grid-cols-2 gap-6">
+                            <div className="grid grid-cols-1 ping-results-grid gap-6">
                                 {/* 패킷 정보 */}
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem' }}>
                                     <div className="input-group">
                                         <span className="input-label">패킷 송수신 상태</span>
-                                        <div className="input-display" style={{ minHeight: '3rem', fontSize: '1rem' }}>
+                                        <div className="input-display" style={{ minHeight: '3rem', fontSize: '1rem', justifyContent: 'center' }}>
                                             보냄: <strong style={{ color: 'var(--accent)', marginLeft: '4px', marginRight: '10px' }}>{stats.sent}</strong> 
                                             받음: <strong style={{ color: 'var(--highlight-green)', marginLeft: '4px', marginRight: '10px' }}>{stats.received}</strong> 
                                             손실: <strong style={{ color: stats.lost > 0 ? '#ff453a' : 'var(--text-secondary)', marginLeft: '4px' }}>{stats.lost}</strong>
@@ -449,7 +449,7 @@ const PingTester = () => {
                                     </div>
                                     <div className="input-group">
                                         <span className="input-label">패킷 손실률</span>
-                                        <div className="input-display" style={{ minHeight: '3rem', fontSize: '1.1rem', color: stats.loss_rate === 0 ? 'var(--highlight-green)' : stats.loss_rate === 100 ? '#ff453a' : 'var(--highlight-yellow)' }}>
+                                        <div className="input-display" style={{ minHeight: '3rem', fontSize: '1.1rem', color: stats.loss_rate === 0 ? 'var(--highlight-green)' : stats.loss_rate === 100 ? '#ff453a' : 'var(--highlight-yellow)', justifyContent: 'center' }}>
                                             {stats.loss_rate}% {stats.loss_rate === 0 ? '🟢 안정적' : stats.loss_rate === 100 ? '🔴 연결 끊김' : '🟡 불안정'}
                                         </div>
                                     </div>
@@ -459,7 +459,7 @@ const PingTester = () => {
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem' }}>
                                     <div className="input-group">
                                         <span className="input-label">응답 시간 (RTT)</span>
-                                        <div className="input-display text-blue" style={{ minHeight: '3rem', fontSize: '1rem' }}>
+                                        <div className="input-display text-blue" style={{ minHeight: '3rem', fontSize: '1.0rem', justifyContent: 'center' }}>
                                             {stats.avg_time !== null ? (
                                                 <>
                                                     최소: <strong>{stats.min_time}ms</strong> | 평균: <strong>{stats.avg_time}ms</strong> | 최대: <strong>{stats.max_time}ms</strong>
@@ -471,7 +471,7 @@ const PingTester = () => {
                                     </div>
                                     <div className="input-group">
                                         <span className="input-label">현재 연결 상태</span>
-                                        <div className="input-display" style={{ minHeight: '3rem', fontSize: '1.1rem', color: stats.received > 0 ? 'var(--highlight-green)' : '#ff453a' }}>
+                                        <div className="input-display" style={{ minHeight: '3rem', fontSize: '1.1rem', color: stats.received > 0 ? 'var(--highlight-green)' : '#ff453a', justifyContent: 'center' }}>
                                             {stats.received > 0 ? 'ONLINE' : 'OFFLINE'}
                                         </div>
                                     </div>
@@ -507,7 +507,7 @@ const PingTester = () => {
                 </div>
             </div>
 
-            {/* 애니메이션 스타일 키프레임 */}
+            {/* 애니메이션 스타일 키프레임 및 결과 그리드 커스텀 스타일 */}
             <style>{`
                 @keyframes blink {
                     from, to { background-color: transparent }
@@ -515,6 +515,11 @@ const PingTester = () => {
                 }
                 .cursor-blink {
                     animation: blink 1s step-end infinite;
+                }
+                @media (min-width: 768px) {
+                    .ping-results-grid {
+                        grid-template-columns: 3.8fr 6.2fr !important;
+                    }
                 }
             `}</style>
         </div>
