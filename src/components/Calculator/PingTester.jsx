@@ -318,79 +318,6 @@ const PingTester = () => {
 
             {/* 터미널 출력 및 통계 영역 */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-                {/* 통계 요약 (항상 고정 렌더링하여 Layout Shift 차단) */}
-                <div className="card" style={{ 
-                    borderLeft: `6px solid ${
-                        !stats || stats.isPlaceholder ? 'var(--accent)' :
-                        stats.loss_rate === 0 ? 'var(--highlight-green)' : 
-                        stats.loss_rate === 100 ? '#ff453a' : 'var(--highlight-yellow)'
-                    }`, 
-                    padding: '1.5rem',
-                    minHeight: '200px',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    justifyContent: 'center'
-                }}>
-                    {!stats || stats.isPlaceholder ? (
-                        <div style={{ textAlign: 'center', color: 'var(--text-secondary)', padding: '1rem 0' }}>
-                            <h3 className="info-title" style={{ fontSize: '1.1rem', marginBottom: '0.8rem', color: 'var(--accent)' }}>
-                                📊 실시간 진단 분석 통계
-                            </h3>
-                            <p style={{ fontSize: '0.9rem', lineHeight: '1.6' }}>
-                                호스트 주소를 입력하고 <strong style={{ color: 'var(--accent)' }}>"테스트 시작"</strong> 버튼을 누르면,<br />
-                                이곳에서 송수신 패킷 상태 및 RTT(왕복 시간) 지연 통계를 실시간으로 모니터링할 수 있습니다.
-                            </p>
-                        </div>
-                    ) : (
-                        <>
-                            <h3 className="info-title" style={{ marginBottom: '1.5rem', fontSize: '1.1rem' }}>
-                                📊 분석 결과 요약 {loading && ' (실시간 업데이트)'}
-                            </h3>
-                            <div className="grid grid-cols-1 md-grid-cols-2 gap-6">
-                                {/* 패킷 정보 */}
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem' }}>
-                                    <div className="input-group">
-                                        <span className="input-label">패킷 송수신 상태</span>
-                                        <div className="input-display" style={{ minHeight: '3rem', fontSize: '1rem' }}>
-                                            보냄: <strong style={{ color: 'var(--accent)', marginLeft: '4px', marginRight: '10px' }}>{stats.sent}</strong> 
-                                            받음: <strong style={{ color: 'var(--highlight-green)', marginLeft: '4px', marginRight: '10px' }}>{stats.received}</strong> 
-                                            손실: <strong style={{ color: stats.lost > 0 ? '#ff453a' : 'var(--text-secondary)', marginLeft: '4px' }}>{stats.lost}</strong>
-                                        </div>
-                                    </div>
-                                    <div className="input-group">
-                                        <span className="input-label">패킷 손실률</span>
-                                        <div className="input-display" style={{ minHeight: '3rem', fontSize: '1.1rem', color: stats.loss_rate === 0 ? 'var(--highlight-green)' : stats.loss_rate === 100 ? '#ff453a' : 'var(--highlight-yellow)' }}>
-                                            {stats.loss_rate}% {stats.loss_rate === 0 ? '🟢 안정적' : stats.loss_rate === 100 ? '🔴 연결 끊김' : '🟡 불안정'}
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {/* 지연 시간 */}
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem' }}>
-                                    <div className="input-group">
-                                        <span className="input-label">응답 시간 (RTT)</span>
-                                        <div className="input-display text-blue" style={{ minHeight: '3rem', fontSize: '1rem' }}>
-                                            {stats.avg_time !== null ? (
-                                                <>
-                                                    최소: <strong>{stats.min_time}ms</strong> | 평균: <strong>{stats.avg_time}ms</strong> | 최대: <strong>{stats.max_time}ms</strong>
-                                                </>
-                                            ) : (
-                                                <span style={{ color: 'var(--text-secondary)' }}>시간 정보 없음 (연결 무응답)</span>
-                                            )}
-                                        </div>
-                                    </div>
-                                    <div className="input-group">
-                                        <span className="input-label">현재 연결 상태</span>
-                                        <div className="input-display" style={{ minHeight: '3rem', fontSize: '1.1rem', color: stats.received > 0 ? 'var(--highlight-green)' : '#ff453a' }}>
-                                            {stats.received > 0 ? 'ONLINE' : 'OFFLINE'}
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </>
-                    )}
-                </div>
-
                 {/* 터미널 윈도우 (최대 높이 400px 고정 상태로 항시 렌더링) */}
                 <div style={{
                     borderRadius: '10px',
@@ -464,6 +391,79 @@ const PingTester = () => {
                             </div>
                         )}
                     </div>
+                </div>
+
+                {/* 통계 요약 (항상 고정 렌더링하여 Layout Shift 차단) */}
+                <div className="card" style={{ 
+                    borderLeft: `6px solid ${
+                        !stats || stats.isPlaceholder ? 'var(--accent)' :
+                        stats.loss_rate === 0 ? 'var(--highlight-green)' : 
+                        stats.loss_rate === 100 ? '#ff453a' : 'var(--highlight-yellow)'
+                    }`, 
+                    padding: '1.5rem',
+                    minHeight: '200px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    justifyContent: 'center'
+                }}>
+                    {!stats || stats.isPlaceholder ? (
+                        <div style={{ textAlign: 'center', color: 'var(--text-secondary)', padding: '1rem 0' }}>
+                            <h3 className="info-title" style={{ fontSize: '1.1rem', marginBottom: '0.8rem', color: 'var(--accent)' }}>
+                                📊 실시간 진단 분석 통계
+                            </h3>
+                            <p style={{ fontSize: '0.9rem', lineHeight: '1.6' }}>
+                                호스트 주소를 입력하고 <strong style={{ color: 'var(--accent)' }}>"테스트 시작"</strong> 버튼을 누르면,<br />
+                                이곳에서 송수신 패킷 상태 및 RTT(왕복 시간) 지연 통계를 실시간으로 모니터링할 수 있습니다.
+                            </p>
+                        </div>
+                    ) : (
+                        <>
+                            <h3 className="info-title" style={{ marginBottom: '1.5rem', fontSize: '1.1rem' }}>
+                                📊 분석 결과 요약 {loading && ' (실시간 업데이트)'}
+                            </h3>
+                            <div className="grid grid-cols-1 md-grid-cols-2 gap-6">
+                                {/* 패킷 정보 */}
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem' }}>
+                                    <div className="input-group">
+                                        <span className="input-label">패킷 송수신 상태</span>
+                                        <div className="input-display" style={{ minHeight: '3rem', fontSize: '1rem' }}>
+                                            보냄: <strong style={{ color: 'var(--accent)', marginLeft: '4px', marginRight: '10px' }}>{stats.sent}</strong> 
+                                            받음: <strong style={{ color: 'var(--highlight-green)', marginLeft: '4px', marginRight: '10px' }}>{stats.received}</strong> 
+                                            손실: <strong style={{ color: stats.lost > 0 ? '#ff453a' : 'var(--text-secondary)', marginLeft: '4px' }}>{stats.lost}</strong>
+                                        </div>
+                                    </div>
+                                    <div className="input-group">
+                                        <span className="input-label">패킷 손실률</span>
+                                        <div className="input-display" style={{ minHeight: '3rem', fontSize: '1.1rem', color: stats.loss_rate === 0 ? 'var(--highlight-green)' : stats.loss_rate === 100 ? '#ff453a' : 'var(--highlight-yellow)' }}>
+                                            {stats.loss_rate}% {stats.loss_rate === 0 ? '🟢 안정적' : stats.loss_rate === 100 ? '🔴 연결 끊김' : '🟡 불안정'}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* 지연 시간 */}
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem' }}>
+                                    <div className="input-group">
+                                        <span className="input-label">응답 시간 (RTT)</span>
+                                        <div className="input-display text-blue" style={{ minHeight: '3rem', fontSize: '1rem' }}>
+                                            {stats.avg_time !== null ? (
+                                                <>
+                                                    최소: <strong>{stats.min_time}ms</strong> | 평균: <strong>{stats.avg_time}ms</strong> | 최대: <strong>{stats.max_time}ms</strong>
+                                                </>
+                                            ) : (
+                                                <span style={{ color: 'var(--text-secondary)' }}>시간 정보 없음 (연결 무응답)</span>
+                                            )}
+                                        </div>
+                                    </div>
+                                    <div className="input-group">
+                                        <span className="input-label">현재 연결 상태</span>
+                                        <div className="input-display" style={{ minHeight: '3rem', fontSize: '1.1rem', color: stats.received > 0 ? 'var(--highlight-green)' : '#ff453a' }}>
+                                            {stats.received > 0 ? 'ONLINE' : 'OFFLINE'}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </>
+                    )}
                 </div>
             </div>
 
