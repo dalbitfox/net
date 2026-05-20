@@ -202,8 +202,11 @@ const PingTester = () => {
                     <h2 className="info-title" style={{ fontSize: '1.4rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                         📡 Ping 응답 및 지연 시간 테스트 (ICMP)
                     </h2>
-                    <p style={{ color: 'var(--text-secondary)', marginBottom: '1.5rem', fontSize: '0.9rem' }}>
+                    <p style={{ color: 'var(--text-secondary)', marginBottom: '0.5rem', fontSize: '0.9rem' }}>
                         대상 서버의 IP 또는 도메인을 입력하여 네트워크 연결 상태와 실시간 전송 지연 시간(Latency)을 측정합니다.
+                    </p>
+                    <p style={{ color: 'var(--highlight-yellow)', marginBottom: '1.5rem', fontSize: '0.85rem', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                        ⚠️ 본 테스트 서버는 해외 리전(AWS 미국 버지니아 us-east-1 등)에서 구동됩니다.
                     </p>
 
                     {/* 프리셋 영역 */}
