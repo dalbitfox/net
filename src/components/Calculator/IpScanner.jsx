@@ -90,6 +90,8 @@ const MOCK_DEVICES = [
   { ip: '192.168.0.110', mac: '00:1F:D0:2E:3C:C9', hostname: 'PATRICK', manufacturer: 'GIGA-BYTE TECHNOLOGY CO., LTD.', status: 'alive', ports: [{ port: 80, service: 'HTTP' }, { port: 443, service: 'HTTPS' }, { port: 21, service: 'FTP' }, { port: 445, service: 'SMB (Shared Folders)' }, { port: 3389, service: 'RDP (Remote Desktop)' }, { port: 4899, service: 'Radmin' }] }
 ];
 
+const API_BASE = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') ? '' : 'http://127.0.0.1:5000';
+
 const IpScanner = () => {
   const [ipRange, setIpRange] = useState('192.168.0.1-254');
   const [searchQuery, setSearchQuery] = useState('');
@@ -138,7 +140,7 @@ const IpScanner = () => {
     // Attempt auto-detect subnet range on load
     const detectLocalRange = async () => {
       try {
-        const response = await fetch('/api/scan_lan/local');
+        const response = await fetch(`${API_BASE}/api/scan_lan/local`);
         if (response.ok) {
           const data = await response.json();
           if (data.success) {
@@ -167,8 +169,8 @@ const IpScanner = () => {
   useEffect(() => {
     const fetchMonitorData = async () => {
       try {
-        const url = testLoopActive ? '/api/network_monitor?simulate_loop=true' : '/api/network_monitor';
-        const response = await fetch(url);
+        const path = testLoopActive ? '/api/network_monitor?simulate_loop=true' : '/api/network_monitor';
+        const response = await fetch(`${API_BASE}${path}`);
         if (response.ok) {
           const data = await response.json();
           if (data.success) {
@@ -327,7 +329,7 @@ const IpScanner = () => {
     setProgress(0);
 
     try {
-      const response = await fetch('/api/scan_lan', {
+      const response = await fetch(`${API_BASE}/api/scan_lan`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ip_range: ipRange })

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 
 const PingTester = () => {
+    const API_BASE = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') ? '' : 'http://127.0.0.1:5000';
     const [host, setHost] = useState('8.8.8.8');
     const [count, setCount] = useState(4);
     const [timeout, setTimeoutVal] = useState(1);
@@ -84,7 +85,7 @@ const PingTester = () => {
 
         try {
             while (!stopRef.current && (isInfinite || sent < count)) {
-                const response = await fetch('/api/ping', {
+                const response = await fetch(`${API_BASE}/api/ping`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',

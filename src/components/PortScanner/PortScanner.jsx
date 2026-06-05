@@ -13,7 +13,7 @@ const PortScanner = () => {
     const [error, setError] = useState('');
     const [progress, setProgress] = useState(0);
 
-    const API_BASE = ''; // Proxy handles the base URL
+    const API_BASE = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') ? '' : 'http://127.0.0.1:5000';
 
     const handleScan = async () => {
         if (!targets || !ports) {
