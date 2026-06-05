@@ -805,8 +805,15 @@ def ping_host():
 
 @app.route('/api/client-info', methods=['GET'])
 def get_client_info_endpoint():
-    client_ip = get_default_client_ip()
-    
+    actual_remote_ip = get_default_client_ip()
+    private_ip = None
+    if is_private_ip(actual_remote_ip):
+        private_ip = actual_remote_ip
+        
+    client_ip = request.args.get('ip', '').strip()
+    if not client_ip:
+        client_ip = actual_remote_ip
+        
     if is_private_ip(client_ip):
         client_ip = "2406:5900:90d5:b046:c022:db66:afd5:56a1"
         
@@ -872,7 +879,8 @@ def get_client_info_endpoint():
         "countryCode": country_code,
         "asn": asn,
         "isp": isp_name,
-        "announcements": announcements
+        "announcements": announcements,
+        "privateIp": private_ip
     })
 
 def get_default_client_ip():

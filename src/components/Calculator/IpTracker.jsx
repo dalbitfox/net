@@ -11,8 +11,21 @@ const IpTracker = () => {
 
     useEffect(() => {
         const fetchClientInfo = async () => {
+            let detectedPublicIp = '';
             try {
-                const response = await fetch('/api/client-info');
+                // 프론트엔드에서 퍼블릭 IP 조회 시도 (IPv6/IPv4 지원)
+                const ipifyRes = await fetch('https://api64.ipify.org?format=json');
+                if (ipifyRes.ok) {
+                    const ipifyData = await ipifyRes.json();
+                    detectedPublicIp = ipifyData.ip || '';
+                }
+            } catch (err) {
+                console.warn("Failed to fetch public IP from ipify, falling back to backend detection:", err);
+            }
+
+            try {
+                const url = detectedPublicIp ? `/api/client-info?ip=${encodeURIComponent(detectedPublicIp)}` : '/api/client-info';
+                const response = await fetch(url);
                 if (response.ok) {
                     const data = await response.json();
                     setClientInfo(data);
@@ -992,6 +1005,29 @@ const IpTracker = () => {
                                         />
                                     )}
                                 </div>
+
+                                {clientInfo.privateIp && (
+                                    <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap' }}>
+                                        <span>Your LAN/Private IP is&nbsp;</span>
+                                        <span style={{ fontWeight: 'bold', textDecoration: 'underline', color: '#ff453a', fontFamily: 'monospace' }}>{clientInfo.privateIp}</span>
+                                        <span style={{
+                                            display: 'inline-flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            border: '1px solid #ff453a',
+                                            borderRadius: '3px',
+                                            padding: '0.05rem 0.25rem',
+                                            fontSize: '0.7rem',
+                                            marginLeft: '0.5rem',
+                                            backgroundColor: 'rgba(255, 69, 58, 0.1)',
+                                            color: '#ff453a',
+                                            fontWeight: 'bold',
+                                            verticalAlign: 'middle'
+                                        }}>
+                                            LAN / PRIVATE
+                                        </span>
+                                    </div>
+                                )}
 
                                 {clientInfo.announcements && clientInfo.announcements.map((cidr, idx) => (
                                     <div key={idx} style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap' }}>
