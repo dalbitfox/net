@@ -98,7 +98,7 @@ const IpScanner = () => {
   const [activeTab, setActiveTab] = useState('results'); // 'results', 'active' or 'favorites'
   const [viewMode, setViewMode] = useState('gui'); // 'gui' (default) or 'detail'
   const [isSimulation, setIsSimulation] = useState(false);
-  const [testLoopActive, setTestLoopActive] = useState(false);
+  const [loopSimType, setLoopSimType] = useState('off'); // 'off', 'physical', 'terminal'
   
   // Scanning state
   const [isScanning, setIsScanning] = useState(false);
@@ -169,7 +169,10 @@ const IpScanner = () => {
   useEffect(() => {
     const fetchMonitorData = async () => {
       try {
-        const path = testLoopActive ? '/api/network_monitor?simulate_loop=true' : '/api/network_monitor';
+        let path = '/api/network_monitor';
+        if (loopSimType !== 'off') {
+          path = `/api/network_monitor?simulate_loop=true&loop_type=${loopSimType}`;
+        }
         const response = await fetch(`${API_BASE}${path}`);
         if (response.ok) {
           const data = await response.json();
@@ -200,7 +203,7 @@ const IpScanner = () => {
     fetchMonitorData();
     const interval = setInterval(fetchMonitorData, 3000);
     return () => clearInterval(interval);
-  }, [activeTab, testLoopActive]);
+  }, [activeTab, loopSimType]);
 
   const stopAllTimers = () => {
     if (scanIntervalRef.current) clearInterval(scanIntervalRef.current);
@@ -701,11 +704,22 @@ const IpScanner = () => {
                   <p>로컬 네트워크 어댑터의 트래픽을 관측하고 ARP 스푸핑, 브로드캐스트 루핑 등 주요 네트워크 위협을 실시간 검출합니다.</p>
                 </div>
                 <button 
-                  className={`view-toggle-btn ${testLoopActive ? 'active' : ''}`}
-                  onClick={() => setTestLoopActive(!testLoopActive)}
+                  className={`view-toggle-btn ${loopSimType !== 'off' ? 'active' : ''}`}
+                  onClick={() => {
+                    if (loopSimType === 'off') {
+                      setLoopSimType('physical');
+                    } else if (loopSimType === 'physical') {
+                      setLoopSimType('terminal');
+                    } else {
+                      setLoopSimType('off');
+                    }
+                  }}
                   title="강제로 네트워크 루프(Looping) 상황을 시뮬레이션하여 경고 시스템을 테스트합니다."
+                  style={loopSimType === 'physical' ? { borderColor: '#ef4444', color: '#f87171' } : loopSimType === 'terminal' ? { borderColor: '#ff453a', color: '#ffbd2e' } : {}}
                 >
-                  {testLoopActive ? "🔴 루프 시뮬레이션 중지" : "⚡ 루프 장애 감지 테스트"}
+                  {loopSimType === 'off' && "⚡ 루프 장애 감지 테스트"}
+                  {loopSimType === 'physical' && "🚨 물리 루프 시뮬레이션 중"}
+                  {loopSimType === 'terminal' && "⚠️ 단말 루프 시뮬레이션 중"}
                 </button>
               </div>
 
@@ -767,7 +781,22 @@ const IpScanner = () => {
                         </div>
                         <div className="monitor-status-desc">
                           {monitorData.looping.detected ? (
-                            <p className="alert-desc-text">⚠️ {monitorData.looping.reason}</p>
+                            <div>
+                              <p className="alert-desc-text">⚠️ {monitorData.looping.reason}</p>
+                              {monitorData.looping.loop_type === 'terminal' && monitorData.looping.culprit_ip && (
+                                <div className="culprit-card-info" style={{ marginTop: '0.6rem', padding: '0.5rem', backgroundColor: 'rgba(255, 69, 58, 0.05)', borderRadius: '4px', border: '1px solid rgba(255, 189, 46, 0.2)' }}>
+                                  <p style={{ margin: '0 0 0.3rem 0', fontWeight: 'bold', color: '#ffbd2e', fontSize: '0.75rem' }}>🚨 원인 단말 정보</p>
+                                  <div className="monospace" style={{ fontSize: '0.7rem' }}>IP: <strong>{monitorData.looping.culprit_ip}</strong></div>
+                                  <div className="monospace" style={{ fontSize: '0.7rem' }}>MAC: <strong>{monitorData.looping.culprit_mac}</strong> ({monitorData.looping.culprit_manufacturer || 'N/A'})</div>
+                                </div>
+                              )}
+                              {monitorData.looping.loop_type === 'physical' && (
+                                <div className="culprit-card-info" style={{ marginTop: '0.6rem', padding: '0.5rem', backgroundColor: 'rgba(239, 68, 68, 0.05)', borderRadius: '4px', border: '1px solid rgba(239, 68, 68, 0.2)' }}>
+                                  <p style={{ margin: '0 0 0.3rem 0', fontWeight: 'bold', color: '#ef4444', fontSize: '0.75rem' }}>🚨 물리 루프 발생 상태</p>
+                                  <p style={{ margin: 0, fontSize: '0.7rem', color: 'var(--text-secondary)' }}>이 장애는 단말의 과부하가 아닌 스위칭 허브 간 루프 연결이 원인입니다. 이중 연결된 LAN 케이블을 확인하십시오.</p>
+                                </div>
+                              )}
+                            </div>
                           ) : (
                             <p className="normal-desc-text">✅ 루핑이나 프레임 순환 정체 현상이 감지되지 않았습니다.</p>
                           )}
@@ -799,7 +828,16 @@ const IpScanner = () => {
                         </div>
                         <div className="monitor-status-desc">
                           {monitorData.traffic.abnormal ? (
-                            <p className="alert-desc-text">⚠️ {monitorData.traffic.reason}</p>
+                            <div>
+                              <p className="alert-desc-text">⚠️ {monitorData.traffic.reason}</p>
+                              {monitorData.traffic.culprit_ip && (
+                                <div className="culprit-card-info" style={{ marginTop: '0.6rem', padding: '0.5rem', backgroundColor: 'rgba(255, 189, 46, 0.05)', borderRadius: '4px', border: '1px solid rgba(255, 189, 46, 0.2)' }}>
+                                  <p style={{ margin: '0 0 0.3rem 0', fontWeight: 'bold', color: '#ffbd2e', fontSize: '0.75rem' }}>🚨 원인 단말 정보</p>
+                                  <div className="monospace" style={{ fontSize: '0.7rem' }}>IP: <strong>{monitorData.traffic.culprit_ip}</strong></div>
+                                  <div className="monospace" style={{ fontSize: '0.7rem' }}>MAC: <strong>{monitorData.traffic.culprit_mac}</strong> ({monitorData.traffic.culprit_manufacturer || 'N/A'})</div>
+                                </div>
+                              )}
+                            </div>
                           ) : (
                             <p className="normal-desc-text">✅ 트래픽 흐름이 정상 범주 내에 있습니다.</p>
                           )}

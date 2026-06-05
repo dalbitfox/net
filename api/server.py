@@ -1395,12 +1395,31 @@ def ping_gateway(gateway_ip):
         pass
     return None
 
+def get_active_connection_counts():
+    import subprocess
+    import re
+    counts = {}
+    try:
+        res = subprocess.run(['netstat', '-n'], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=3, shell=True)
+        if res.returncode == 0:
+            for line in res.stdout.splitlines():
+                line = line.strip()
+                ips = re.findall(r'(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})', line)
+                for ip in ips:
+                    if ip.startswith('127.') or ip.startswith('0.'):
+                        continue
+                    counts[ip] = counts.get(ip, 0) + 1
+    except Exception:
+        pass
+    return counts
+
 @app.route('/api/network_monitor', methods=['GET'])
 def get_network_monitor():
     global last_traffic_stats
     import time
     
     simulate_loop = request.args.get('simulate_loop', 'false').lower() == 'true'
+    loop_type = request.args.get('loop_type', 'physical').lower() # 'physical' or 'terminal'
     
     local_ip = get_primary_local_ip()
     gateway_ip = get_default_gateway() or 'Unknown'
@@ -1411,27 +1430,36 @@ def get_network_monitor():
     arp_spoofing_detected = False
     spoofing_details = []
     
-    for ip, mac in arp_cache.items():
-        mac_clean = mac.strip().lower()
-        if not mac_clean or mac_clean in ('00:00:00:00:00:00', 'ff:ff:ff:ff:ff:ff', '-', ''):
-            continue
-        if mac_clean.startswith('01:00:5e') or mac_clean.startswith('33:33:'):
-            continue
+    if simulate_loop and loop_type == 'terminal':
+        arp_spoofing_detected = True
+        spoofing_details.append({
+            'mac': '78:f2:38:80:6a:fe',
+            'ips': ['192.168.219.1', '192.168.219.125'],
+            'gateway_involved': True,
+            'manufacturer': 'Samsung Electronics Co.,Ltd'
+        })
+    else:
+        for ip, mac in arp_cache.items():
+            mac_clean = mac.strip().lower()
+            if not mac_clean or mac_clean in ('00:00:00:00:00:00', 'ff:ff:ff:ff:ff:ff', '-', ''):
+                continue
+            if mac_clean.startswith('01:00:5e') or mac_clean.startswith('33:33:'):
+                continue
+                
+            if mac_clean not in mac_to_ips:
+                mac_to_ips[mac_clean] = []
+            mac_to_ips[mac_clean].append(ip)
             
-        if mac_clean not in mac_to_ips:
-            mac_to_ips[mac_clean] = []
-        mac_to_ips[mac_clean].append(ip)
-        
-    for mac, ips in mac_to_ips.items():
-        if len(ips) >= 2:
-            arp_spoofing_detected = True
-            is_gateway_involved = gateway_ip in ips
-            spoofing_details.append({
-                'mac': mac,
-                'ips': ips,
-                'gateway_involved': is_gateway_involved,
-                'manufacturer': lookup_manufacturer(mac)
-            })
+        for mac, ips in mac_to_ips.items():
+            if len(ips) >= 2:
+                arp_spoofing_detected = True
+                is_gateway_involved = gateway_ip in ips
+                spoofing_details.append({
+                    'mac': mac,
+                    'ips': ips,
+                    'gateway_involved': is_gateway_involved,
+                    'manufacturer': lookup_manufacturer(mac)
+                })
             
     # 2. Ping Gateway Latency
     gateway_rtt = ping_gateway(gateway_ip)
@@ -1488,28 +1516,90 @@ def get_network_monitor():
         pps_tx = 2100
         pps_broadcast = 2650
 
-    # 4. Diagnosis Decision
+    # 4. Diagnosis and Culprit Terminal Detection
+    active_conns = get_active_connection_counts()
+    culprit_ip = None
+    culprit_mac = None
+    culprit_manufacturer = None
+    
+    highest_conns = 0
+    for ip, count in active_conns.items():
+        if ip != gateway_ip and count > highest_conns:
+            highest_conns = count
+            culprit_ip = ip
+            
+    if culprit_ip and highest_conns > 100:
+        culprit_mac = arp_cache.get(culprit_ip, 'Unknown')
+        culprit_manufacturer = lookup_manufacturer(culprit_mac) if culprit_mac != 'Unknown' else 'Unknown'
+    else:
+        culprit_ip = None
+
     looping_detected = False
     looping_reason = "네트워크 루핑 징후가 없습니다."
+    loop_type_resp = 'none'
+    loop_culprit_ip = None
+    loop_culprit_mac = None
+    loop_culprit_manufacturer = None
     
     if simulate_loop:
         looping_detected = True
-        looping_reason = "초당 브로드캐스트 패킷 과부하 감지 (2650 pps) - 루핑 강제 모의 테스트 중"
+        loop_type_resp = loop_type
+        if loop_type == 'terminal':
+            looping_reason = "단말 장애 루프 감지: 192.168.219.125 단말에서 초당 2650 pps의 비정상 브로드캐스트가 유출되고 있습니다."
+            loop_culprit_ip = "192.168.219.125"
+            loop_culprit_mac = "78:f2:38:80:6a:fe"
+            loop_culprit_manufacturer = "Samsung Electronics Co.,Ltd"
+        else:
+            looping_reason = "물리적 루프 발생: 네트워크 장비 간 이중 연결로 인한 초당 2650 pps의 패킷 순환 장애가 감지되었습니다."
     elif pps_broadcast > 2000:
         looping_detected = True
-        looping_reason = f"초당 브로드캐스트 패킷 과부하 감지 ({int(pps_broadcast)} pps) - 루핑 의심"
+        if culprit_ip:
+            loop_type_resp = 'terminal'
+            looping_reason = f"단말 장애 루프 감지: {culprit_ip} 단말에서 초당 {int(pps_broadcast)} pps의 비정상 브로드캐스트 패킷이 분출 중입니다."
+            loop_culprit_ip = culprit_ip
+            loop_culprit_mac = culprit_mac
+            loop_culprit_manufacturer = culprit_manufacturer
+        else:
+            loop_type_resp = 'physical'
+            looping_reason = f"물리적 루프 발생: 네트워크 장비 간 케이블 이중 루프 순환 장애가 감지되었습니다. (브로드캐스트: {int(pps_broadcast)} pps)"
     elif gateway_rtt and gateway_rtt > 80:
         looping_detected = True
-        looping_reason = f"게이트웨이 Ping 응답 지연 심각 ({gateway_rtt} ms) - 루핑 혹은 대역폭 포화 의심"
+        if culprit_ip:
+            loop_type_resp = 'terminal'
+            looping_reason = f"단말 장애 루프 감지: {culprit_ip} 단말의 패킷 과부하로 인해 게이트웨이 지연({gateway_rtt} ms)이 유발되고 있습니다."
+            loop_culprit_ip = culprit_ip
+            loop_culprit_mac = culprit_mac
+            loop_culprit_manufacturer = culprit_manufacturer
+        else:
+            loop_type_resp = 'physical'
+            looping_reason = f"물리적 루프 발생: 게이트웨이 Ping 응답 지연 심각 ({gateway_rtt} ms) - 루핑 의심"
         
     abnormal_traffic = False
     traffic_reason = "정상 수준의 대역폭 사용 중"
-    if speed_rx > 10240 or speed_tx > 5120:
+    traffic_culprit_ip = None
+    traffic_culprit_mac = None
+    traffic_culprit_manufacturer = None
+    
+    if simulate_loop:
+        abnormal_traffic = True
+        traffic_reason = "이상 과다 트래픽 감지 (다운로드: 12450.0 KB/s, 업로드: 6520.0 KB/s)"
+        traffic_culprit_ip = "192.168.219.110"
+        traffic_culprit_mac = "00:1f:d0:2e:3c:c9"
+        traffic_culprit_manufacturer = "GIGA-BYTE TECHNOLOGY CO., LTD."
+    elif speed_rx > 10240 or speed_tx > 5120:
         abnormal_traffic = True
         traffic_reason = f"비정상적 대용량 트래픽 급증 감지 (다운로드: {speed_rx:.1f} KB/s, 업로드: {speed_tx:.1f} KB/s)"
+        if culprit_ip:
+            traffic_culprit_ip = culprit_ip
+            traffic_culprit_mac = culprit_mac
+            traffic_culprit_manufacturer = culprit_manufacturer
     elif (pps_rx + pps_tx) > 5000:
         abnormal_traffic = True
         traffic_reason = f"과도한 패킷 전송 감지 ({int(pps_rx + pps_tx)} pps) - DDoS 혹은 포트 스캐닝 의심"
+        if culprit_ip:
+            traffic_culprit_ip = culprit_ip
+            traffic_culprit_mac = culprit_mac
+            traffic_culprit_manufacturer = culprit_manufacturer
         
     return jsonify({
         'success': True,
@@ -1523,6 +1613,10 @@ def get_network_monitor():
         },
         'looping': {
             'detected': looping_detected,
+            'loop_type': loop_type_resp,
+            'culprit_ip': loop_culprit_ip,
+            'culprit_mac': loop_culprit_mac,
+            'culprit_manufacturer': loop_culprit_manufacturer,
             'reason': looping_reason,
             'status': 'warning' if looping_detected else 'healthy',
             'pps_broadcast': int(pps_broadcast)
@@ -1534,6 +1628,9 @@ def get_network_monitor():
             'pps_tx': int(pps_tx),
             'pps_broadcast': int(pps_broadcast),
             'abnormal': abnormal_traffic,
+            'culprit_ip': traffic_culprit_ip,
+            'culprit_mac': traffic_culprit_mac,
+            'culprit_manufacturer': traffic_culprit_manufacturer,
             'reason': traffic_reason,
             'status': 'warning' if abnormal_traffic else 'healthy'
         }
