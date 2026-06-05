@@ -8,6 +8,7 @@ import IpTracker from './components/Calculator/IpTracker';
 import PingTester from './components/Calculator/PingTester';
 import PlaceholderPage from './components/PlaceholderPage';
 import TodoApp from './components/Todo/TodoApp';
+import IpScanner from './components/Calculator/IpScanner';
 
 import PortScanner from './components/PortScanner/PortScanner';
 
@@ -43,6 +44,8 @@ function App() {
                 return <PingTester />;
             case 'port':
                 return <PortScanner />;
+            case 'ipscanner':
+                return <IpScanner />;
             case 'contact':
                 return <TodoApp />;
             default:

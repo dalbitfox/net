@@ -10,6 +10,7 @@ const Header = ({ activePage, setActivePage, theme, toggleTheme, onLogoClick }) 
         { id: 'trace', label: 'IP 추적' },
         { id: 'ping', label: 'Ping 테스트' },
         { id: 'port', label: '포트 스캔' },
+        { id: 'ipscanner', label: 'IP 스캐너' },
         { id: 'contact', label: 'TalkTalk' },
     ];
 
