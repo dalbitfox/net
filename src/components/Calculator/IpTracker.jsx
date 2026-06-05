@@ -11,27 +11,46 @@ const IpTracker = () => {
 
     useEffect(() => {
         const fetchClientInfo = async () => {
-            let detectedPublicIp = '';
+            let publicIpData = null;
+            
+            // 1. 프론트엔드에서 공인 IP 및 기본 정보 조회 시도 (ipwho.is)
             try {
-                // 프론트엔드에서 퍼블릭 IP 조회 시도 (IPv6/IPv4 지원)
-                const ipifyRes = await fetch('https://api64.ipify.org?format=json');
-                if (ipifyRes.ok) {
-                    const ipifyData = await ipifyRes.json();
-                    detectedPublicIp = ipifyData.ip || '';
+                const ipwhoisRes = await fetch('https://ipwho.is/');
+                if (ipwhoisRes.ok) {
+                    const data = await ipwhoisRes.json();
+                    if (data.success) {
+                        publicIpData = data;
+                    }
                 }
             } catch (err) {
-                console.warn("Failed to fetch public IP from ipify, falling back to backend detection:", err);
+                console.warn("Failed to fetch public IP from ipwho.is:", err);
             }
 
+            // 2. 백엔드 API 호출 시도 (공인 IP 전달하여 KISA 대역 정보 및 로컬 사설 IP 결합)
             try {
-                const url = detectedPublicIp ? `/api/client-info?ip=${encodeURIComponent(detectedPublicIp)}` : '/api/client-info';
-                const response = await fetch(url);
+                const ipParam = publicIpData?.ip ? `?ip=${encodeURIComponent(publicIpData.ip)}` : '';
+                const response = await fetch(`/api/client-info${ipParam}`);
                 if (response.ok) {
                     const data = await response.json();
                     setClientInfo(data);
+                    return; // 성공 시 종료
+                } else {
+                    throw new Error("Backend API returned non-ok status");
                 }
             } catch (err) {
-                console.error("Failed to fetch client info:", err);
+                console.warn("Backend API not available, using client-side fallback data:", err);
+            }
+
+            // 3. 백엔드가 죽었거나 배포 환경(GitHub Pages)인 경우, 이미 조회한 ipwho.is 데이터로 프론트엔드 노출
+            if (publicIpData) {
+                setClientInfo({
+                    ip: publicIpData.ip,
+                    countryCode: publicIpData.country_code || 'KR',
+                    asn: publicIpData.asn || '',
+                    isp: publicIpData.isp || publicIpData.org || '',
+                    announcements: publicIpData.asn ? [publicIpData.ip] : [],
+                    privateIp: null
+                });
             }
         };
         fetchClientInfo();
