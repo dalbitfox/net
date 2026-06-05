@@ -384,16 +384,215 @@ def whois_lookup():
     except requests.exceptions.RequestException as e:
         return jsonify({'error': f'API 호출 중 오류 발생: {str(e)}'}), 500
 
+    # 만약 IP 검색이고, KRNIC(국내)이 아닌 해외 IP인 경우 RDAP 상세 조회 추가
+    if query_type == 'ip_address' and 'response' in result_data:
+        whois_data = result_data['response'].get('whois', {})
+        registry = whois_data.get('registry', '').upper()
+        country = whois_data.get('countryCode', '').upper()
+        
+        # 레지스트리가 KRNIC이 아니거나, 국내 IP에 대한 상세 정보(korean, english)가 없는 경우
+        if registry != 'KRNIC' or (not whois_data.get('korean') and not whois_data.get('english')):
+            rdap_info = get_foreign_rdap(query)
+            if rdap_info and "error" not in rdap_info:
+                result_data['response']['whois']['rdap'] = rdap_info
+
     if resolved_ip:
         result_data['resolved_ip'] = resolved_ip
         try:
             ip_url = "http://apis.data.go.kr/B551505/whois/ip_address"
             ip_res = requests.get(ip_url, params={'serviceKey': API_KEY, 'query': resolved_ip, 'answer': 'json'}, timeout=5)
-            result_data['ip_whois'] = ip_res.json()
+            ip_whois_data = ip_res.json()
+            
+            # 연결된 IP가 해외 IP일 경우에도 RDAP 조회 적용
+            if 'response' in ip_whois_data:
+                whois_data = ip_whois_data['response'].get('whois', {})
+                registry = whois_data.get('registry', '').upper()
+                if registry != 'KRNIC' or (not whois_data.get('korean') and not whois_data.get('english')):
+                    rdap_info = get_foreign_rdap(resolved_ip)
+                    if rdap_info and "error" not in rdap_info:
+                        ip_whois_data['response']['whois']['rdap'] = rdap_info
+            
+            result_data['ip_whois'] = ip_whois_data
         except Exception:
             pass
             
     return jsonify(result_data)
+
+
+def get_foreign_rdap(ip):
+    """해외 IP에 대해 RDAP 서비스를 조회하여 상세 정보 및 포맷팅된 텍스트 반환"""
+    try:
+        url = f"https://rdap.org/ip/{ip}"
+        headers = {"Accept": "application/json"}
+        response = requests.get(url, headers=headers, timeout=5)
+        if response.status_code == 200:
+            data = response.json()
+            
+            parsed = {}
+            parsed["startAddress"] = data.get("startAddress", "")
+            parsed["endAddress"] = data.get("endAddress", "")
+            parsed["netRange"] = f"{parsed['startAddress']} - {parsed['endAddress']}" if parsed["startAddress"] else ""
+            
+            cidrs = data.get("cidr0_cidrs", [])
+            if cidrs:
+                parsed["cidr"] = ", ".join([f"{c.get('v4prefix', c.get('v6prefix', ''))}/{c.get('length')}" for c in cidrs])
+            else:
+                parsed["cidr"] = ""
+                
+            parsed["netName"] = data.get("name", "")
+            parsed["netHandle"] = data.get("handle", "")
+            parsed["parent"] = data.get("parentHandle", "")
+            parsed["netType"] = data.get("type", "")
+            
+            reg_date = ""
+            updated_date = ""
+            for event in data.get("events", []):
+                action = event.get("eventAction", "")
+                date_val = event.get("eventDate", "")
+                if date_val:
+                    date_val = date_val.split("T")[0]
+                if action == "registration":
+                    reg_date = date_val
+                elif action == "last changed":
+                    updated_date = date_val
+            parsed["regDate"] = reg_date
+            parsed["updatedDate"] = updated_date
+            
+            org_name = ""
+            org_address = ""
+            org_id = ""
+            
+            abuse_contact = {"name": "", "email": "", "phone": ""}
+            tech_contact = {"name": "", "email": "", "phone": ""}
+            
+            def parse_vcard(vcard_array):
+                if not vcard_array or len(vcard_array) < 2:
+                    return {}
+                info = {}
+                for item in vcard_array[1]:
+                    if not isinstance(item, list) or len(item) < 4:
+                        continue
+                    prop_name = item[0]
+                    prop_val = item[3]
+                    if prop_name == "fn":
+                        info["fn"] = prop_val
+                    elif prop_name == "org":
+                        info["org"] = prop_val
+                    elif prop_name == "email":
+                        info["email"] = prop_val
+                    elif prop_name == "tel":
+                        info["tel"] = prop_val
+                    elif prop_name == "adr":
+                        params = item[1]
+                        if isinstance(params, dict) and "label" in params:
+                            info["adr"] = params["label"]
+                        elif isinstance(prop_val, list):
+                            info["adr"] = ", ".join([x for x in prop_val if x])
+                        else:
+                            info["adr"] = str(prop_val)
+                return info
+
+            all_entities = data.get("entities", [])
+            
+            def gather_entities(entities_list):
+                flat = []
+                for ent in entities_list:
+                    flat.append(ent)
+                    if "entities" in ent:
+                        flat.extend(gather_entities(ent["entities"]))
+                return flat
+                
+            flat_entities = gather_entities(all_entities)
+            
+            for ent in flat_entities:
+                roles = ent.get("roles", [])
+                handle = ent.get("handle", "")
+                vcard = parse_vcard(ent.get("vcardArray", []))
+                
+                if "registrant" in roles:
+                    org_name = vcard.get("fn", vcard.get("org", ""))
+                    org_address = vcard.get("adr", "").replace("\n", ", ")
+                    org_id = handle
+                
+                if "abuse" in roles:
+                    if not abuse_contact["name"]:
+                        abuse_contact["name"] = vcard.get("fn", vcard.get("org", "Abuse Contact"))
+                    if not abuse_contact["email"]:
+                        abuse_contact["email"] = vcard.get("email", "")
+                    if not abuse_contact["phone"]:
+                        abuse_contact["phone"] = vcard.get("tel", "")
+                
+                if "technical" in roles or "administrative" in roles:
+                    if not tech_contact["name"]:
+                        tech_contact["name"] = vcard.get("fn", vcard.get("org", "Tech Contact"))
+                    if not tech_contact["email"]:
+                        tech_contact["email"] = vcard.get("email", "")
+                    if not tech_contact["phone"]:
+                        tech_contact["phone"] = vcard.get("tel", "")
+            
+            parsed["orgName"] = org_name if org_name else data.get("name", "")
+            parsed["orgAddress"] = org_address
+            parsed["orgId"] = org_id
+            parsed["abuseContact"] = abuse_contact
+            parsed["techContact"] = tech_contact
+            
+            if not parsed["orgName"] and flat_entities:
+                first_vcard = parse_vcard(flat_entities[0].get("vcardArray", []))
+                parsed["orgName"] = first_vcard.get("fn", first_vcard.get("org", ""))
+                parsed["orgAddress"] = first_vcard.get("adr", "").replace("\n", ", ")
+                parsed["orgId"] = flat_entities[0].get("handle", "")
+            
+            lines = []
+            lines.append("%kwhois")
+            lines.append("#")
+            lines.append(f"# {data.get('port43', 'whois.rdap.org')} data and services are subject to the Terms of Use")
+            
+            for notice in data.get("notices", []):
+                title = notice.get("title", "")
+                desc = notice.get("description", [])
+                lines.append(f"# {title}:")
+                for d in desc:
+                    lines.append(f"#   {d}")
+                for link in notice.get("links", []):
+                    lines.append(f"#   Link: {link.get('href')}")
+                lines.append("#")
+            
+            lines.append("")
+            
+            if parsed["netRange"]: lines.append(f"NetRange:       {parsed['netRange']}")
+            if parsed["cidr"]:     lines.append(f"CIDR:           {parsed['cidr']}")
+            if parsed["netName"]:  lines.append(f"NetName:        {parsed['netName']}")
+            if parsed["netHandle"]:lines.append(f"NetHandle:      {parsed['netHandle']}")
+            if parsed["parent"]:   lines.append(f"Parent:         {parsed['parent']}")
+            if parsed["netType"]:  lines.append(f"NetType:        {parsed['netType']}")
+            if reg_date:          lines.append(f"RegDate:        {reg_date}")
+            if updated_date:      lines.append(f"Updated:        {updated_date}")
+            lines.append(f"Ref:            https://rdap.arin.net/registry/ip/{ip}")
+            
+            lines.append("")
+            
+            if parsed["orgName"]:    lines.append(f"OrgName:        {parsed['orgName']}")
+            if parsed["orgId"]:      lines.append(f"OrgId:          {parsed['orgId']}")
+            if parsed["orgAddress"]: lines.append(f"Address:        {parsed['orgAddress']}")
+            lines.append(f"Country:        {data.get('countryCode', '') or data.get('country', '')}")
+            
+            lines.append("")
+            
+            if abuse_contact["name"]:  lines.append(f"OrgAbuseName:   {abuse_contact['name']}")
+            if abuse_contact["phone"]: lines.append(f"OrgAbusePhone:  {abuse_contact['phone']}")
+            if abuse_contact["email"]: lines.append(f"OrgAbuseEmail:  {abuse_contact['email']}")
+            
+            lines.append("")
+            
+            if tech_contact["name"]:  lines.append(f"OrgTechName:    {tech_contact['name']}")
+            if tech_contact["phone"]: lines.append(f"OrgTechPhone:   {tech_contact['phone']}")
+            if tech_contact["email"]: lines.append(f"OrgTechEmail:   {tech_contact['email']}")
+            
+            parsed["rawText"] = "\n".join(lines)
+            return parsed
+    except Exception as e:
+        return {"error": f"RDAP 조회 실패: {str(e)}"}
+    return None
 
 
 def run_tcp_ping_fallback(host: str, count: int, timeout: int) -> dict:
