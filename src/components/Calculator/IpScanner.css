@@ -1217,6 +1217,7 @@
 }
 
 .gw-badge-indicator.inline-gw {
+  position: static;
   font-size: 0.65rem;
   background-color: rgba(0, 191, 255, 0.15);
   color: var(--accent);
