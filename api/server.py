@@ -384,17 +384,11 @@ def whois_lookup():
     except requests.exceptions.RequestException as e:
         return jsonify({'error': f'API 호출 중 오류 발생: {str(e)}'}), 500
 
-    # 만약 IP 검색이고, KRNIC(국내)이 아닌 해외 IP인 경우 RDAP 상세 조회 추가
+    # 만약 IP 검색인 경우 국내/해외 불문하고 상세 정보(RDAP) 조회를 추가하여 정보를 확장합니다.
     if query_type == 'ip_address' and 'response' in result_data:
-        whois_data = result_data['response'].get('whois', {})
-        registry = whois_data.get('registry', '').upper()
-        country = whois_data.get('countryCode', '').upper()
-        
-        # 레지스트리가 KRNIC이 아니거나, 국내 IP에 대한 상세 정보(korean, english)가 없는 경우
-        if registry != 'KRNIC' or (not whois_data.get('korean') and not whois_data.get('english')):
-            rdap_info = get_foreign_rdap(query)
-            if rdap_info and "error" not in rdap_info:
-                result_data['response']['whois']['rdap'] = rdap_info
+        rdap_info = get_foreign_rdap(query)
+        if rdap_info and "error" not in rdap_info:
+            result_data['response']['whois']['rdap'] = rdap_info
 
     if resolved_ip:
         result_data['resolved_ip'] = resolved_ip
@@ -403,14 +397,11 @@ def whois_lookup():
             ip_res = requests.get(ip_url, params={'serviceKey': API_KEY, 'query': resolved_ip, 'answer': 'json'}, timeout=5)
             ip_whois_data = ip_res.json()
             
-            # 연결된 IP가 해외 IP일 경우에도 RDAP 조회 적용
+            # 연결된 IP의 경우에도 항상 RDAP 조회를 적용하여 정보를 풍부하게 합니다.
             if 'response' in ip_whois_data:
-                whois_data = ip_whois_data['response'].get('whois', {})
-                registry = whois_data.get('registry', '').upper()
-                if registry != 'KRNIC' or (not whois_data.get('korean') and not whois_data.get('english')):
-                    rdap_info = get_foreign_rdap(resolved_ip)
-                    if rdap_info and "error" not in rdap_info:
-                        ip_whois_data['response']['whois']['rdap'] = rdap_info
+                rdap_info = get_foreign_rdap(resolved_ip)
+                if rdap_info and "error" not in rdap_info:
+                    ip_whois_data['response']['whois']['rdap'] = rdap_info
             
             result_data['ip_whois'] = ip_whois_data
         except Exception:
