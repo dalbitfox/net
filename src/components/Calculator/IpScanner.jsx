@@ -1012,6 +1012,12 @@ const IpScanner = () => {
                       const isGateway = localInfo && localInfo.gateway_ip && device.ip === localInfo.gateway_ip;
 
                       const isSpoofed = spoofedIps.has(device.ip);
+                      
+                      const isTopRow = index < 30;
+                      const isLeftCol = (index % 15) < 2;
+                      const isRightCol = (index % 15) > 12;
+                      const tooltipClass = `cell-tooltip${isTopRow ? ' tooltip-bottom' : ''}${isLeftCol ? ' tooltip-left-align' : ''}${isRightCol ? ' tooltip-right-align' : ''}`;
+
                       return (
                         <div 
                           key={device.ip + '-grid-' + index}
@@ -1031,7 +1037,7 @@ const IpScanner = () => {
                           </span>
                           
                           {/* CSS hover tooltip */}
-                          <div className="cell-tooltip">
+                          <div className={tooltipClass}>
                             <div className="tooltip-ip">
                               {device.ip} {isGateway && '(게이트웨이)'}
                               {isSpoofed && <span className="tooltip-spoof-alert" style={{ color: '#ef4444', fontWeight: 'bold' }}> [⚠️ ARP 변조 의심]</span>}

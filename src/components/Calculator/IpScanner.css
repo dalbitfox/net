@@ -808,6 +808,40 @@
   border-color: #161616 transparent transparent transparent;
 }
 
+/* Custom Edge Tooltip Positioning to Prevent Clipping */
+.ip-grid-cell .cell-tooltip.tooltip-bottom {
+  bottom: auto;
+  top: 125%;
+}
+
+.ip-grid-cell .cell-tooltip.tooltip-bottom::after {
+  top: auto;
+  bottom: 100%;
+  border-color: transparent transparent #161616 transparent;
+}
+
+.ip-grid-cell .cell-tooltip.tooltip-left-align {
+  left: 0;
+  transform: none;
+}
+
+.ip-grid-cell .cell-tooltip.tooltip-left-align::after {
+  left: 20px;
+  transform: none;
+}
+
+.ip-grid-cell .cell-tooltip.tooltip-right-align {
+  left: auto;
+  right: 0;
+  transform: none;
+}
+
+.ip-grid-cell .cell-tooltip.tooltip-right-align::after {
+  left: auto;
+  right: 20px;
+  transform: none;
+}
+
 .tooltip-ip {
   font-weight: 700;
   color: var(--accent);
