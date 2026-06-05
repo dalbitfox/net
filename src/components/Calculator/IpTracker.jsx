@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
 const IpTracker = () => {
     const [query, setQuery] = useState('');
@@ -7,6 +7,22 @@ const IpTracker = () => {
     const [error, setError] = useState('');
     const [showRawText, setShowRawText] = useState(false);
     const [activeLang, setActiveLang] = useState('ko'); // 'ko' or 'en' for bilingual view (ASN / IP)
+    const [clientInfo, setClientInfo] = useState(null);
+
+    useEffect(() => {
+        const fetchClientInfo = async () => {
+            try {
+                const response = await fetch('/api/client-info');
+                if (response.ok) {
+                    const data = await response.json();
+                    setClientInfo(data);
+                }
+            } catch (err) {
+                console.error("Failed to fetch client info:", err);
+            }
+        };
+        fetchClientInfo();
+    }, []);
 
     const handleSearch = async (e) => {
         e.preventDefault();
@@ -940,6 +956,84 @@ const IpTracker = () => {
                     <p style={{ color: 'var(--text-secondary)', marginBottom: '1.5rem', fontSize: '0.9rem' }}>
                         도메인 이름 (.kr, .한국), IP 주소 (IPv4, IPv6), AS 번호를 입력하여 상세 등록/할당 대역 정보, 관리 네트워크 주소 및 담당자 정보 등을 실시간으로 조회합니다.
                     </p>
+
+                    {/* Hurricane Electric BGP Toolkit 스타일 접속 정보 */}
+                    {clientInfo && (
+                        <div style={{
+                            backgroundColor: 'rgba(255, 255, 255, 0.02)',
+                            border: '1px solid var(--border-color)',
+                            borderRadius: '8px',
+                            padding: '1.5rem',
+                            marginBottom: '2rem',
+                            fontSize: '1rem',
+                            lineHeight: '1.8',
+                            color: 'var(--text-primary)',
+                            boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.2)'
+                        }}>
+                            <div style={{ fontSize: '1.15rem', fontWeight: 'bold', marginBottom: '1rem', color: 'var(--text-primary)' }}>
+                                Welcome to the Hurricane Electric BGP Toolkit (NetBox Edition).
+                            </div>
+                            
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap' }}>
+                                    <span>You are visiting from&nbsp;</span>
+                                    <span style={{ fontWeight: 'bold', textDecoration: 'underline', color: 'var(--accent)', fontFamily: 'monospace' }}>{clientInfo.ip}</span>
+                                    {clientInfo.countryCode && (
+                                        <img 
+                                            src={`https://flagcdn.com/w20/${clientInfo.countryCode.toLowerCase()}.png`} 
+                                            alt={clientInfo.countryCode} 
+                                            style={{
+                                                marginLeft: '0.5rem',
+                                                border: '1px solid var(--text-primary)',
+                                                height: '13px',
+                                                display: 'inline-block',
+                                                verticalAlign: 'middle'
+                                            }}
+                                        />
+                                    )}
+                                </div>
+
+                                {clientInfo.announcements && clientInfo.announcements.map((cidr, idx) => (
+                                    <div key={idx} style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap' }}>
+                                        <span>Announced as&nbsp;</span>
+                                        <span style={{ fontWeight: 'bold', textDecoration: 'underline', color: 'var(--accent)', fontFamily: 'monospace' }}>{cidr}</span>
+                                        {clientInfo.countryCode && (
+                                            <img 
+                                                src={`https://flagcdn.com/w20/${clientInfo.countryCode.toLowerCase()}.png`} 
+                                                alt={clientInfo.countryCode} 
+                                                style={{
+                                                    marginLeft: '0.5rem',
+                                                    border: '1px solid var(--text-primary)',
+                                                    height: '13px',
+                                                    display: 'inline-block',
+                                                    verticalAlign: 'middle'
+                                                }}
+                                            />
+                                        )}
+                                    </div>
+                                ))}
+
+                                <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', marginTop: '0.3rem' }}>
+                                    <span>Your ISP is&nbsp;</span>
+                                    <span style={{ fontWeight: 'bold', textDecoration: 'underline', color: 'var(--accent)', fontFamily: 'monospace' }}>{clientInfo.asn}</span>
+                                    <span>&nbsp;({clientInfo.isp})</span>
+                                    {clientInfo.countryCode && (
+                                        <img 
+                                            src={`https://flagcdn.com/w20/${clientInfo.countryCode.toLowerCase()}.png`} 
+                                            alt={clientInfo.countryCode} 
+                                            style={{
+                                                marginLeft: '0.5rem',
+                                                border: '1px solid var(--text-primary)',
+                                                height: '13px',
+                                                display: 'inline-block',
+                                                verticalAlign: 'middle'
+                                            }}
+                                        />
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    )}
 
                     <form onSubmit={handleSearch} className="flex gap-4 items-center" style={{ flexWrap: 'wrap' }}>
                         <div className="input-group" style={{ flexGrow: 1, minWidth: '300px' }}>

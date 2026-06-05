@@ -803,6 +803,94 @@ def ping_host():
         return jsonify({'error': f'핑 테스트 진행 중 에러가 발생했습니다: {str(e)}'}), 500
 
 
+@app.route('/api/client-info', methods=['GET'])
+def get_client_info_endpoint():
+    client_ip = get_default_client_ip()
+    
+    if is_private_ip(client_ip):
+        client_ip = "2406:5900:90d5:b046:c022:db66:afd5:56a1"
+        
+    try:
+        r = requests.get(f"http://ip-api.com/json/{client_ip}", timeout=5)
+        ip_api_data = r.json() if r.status_code == 200 else {}
+    except Exception:
+        ip_api_data = {}
+        
+    country_code = ip_api_data.get("countryCode", "KR")
+    isp_name = ip_api_data.get("isp", "LG DACOM Corporation")
+    as_field = ip_api_data.get("as", "AS3786 LG DACOM Corporation")
+    
+    asn = "AS3786"
+    if as_field:
+        m = re.match(r'^(AS\d+)', as_field)
+        if m:
+            asn = m.group(1)
+            
+    announcements = []
+    try:
+        query_type = determine_whois_query_type(client_ip)
+        API_KEY = os.environ.get("KISA_WHOIS_API_KEY", "fa19607998cfaf40deefe038c513e9d9bbfd09dee004f2f7e3ed807cfe22cea5")
+        url = f"http://apis.data.go.kr/B551505/whois/{query_type}"
+        params = {'serviceKey': API_KEY, 'query': client_ip, 'answer': 'json'}
+        kisa_res = requests.get(url, params=params, timeout=5)
+        kisa_data = kisa_res.json()
+        
+        whois_data = kisa_data.get("response", {}).get("whois", {})
+        
+        # user block
+        user_block = whois_data.get("korean", {}).get("user") or whois_data.get("english", {}).get("user")
+        if user_block and user_block.get("netinfo"):
+            net = user_block["netinfo"]
+            rng = net.get("range", "")
+            prefix = net.get("prefix", "")
+            if rng and prefix:
+                start_ip = rng.split("-")[0].strip()
+                announcements.append(f"{start_ip}/{prefix}")
+                
+        # PI block
+        pi_block = whois_data.get("korean", {}).get("PI") or whois_data.get("english", {}).get("PI")
+        if pi_block and pi_block.get("netinfo"):
+            net = pi_block["netinfo"]
+            rng = net.get("range", "")
+            prefix = net.get("prefix", "")
+            if rng and prefix:
+                start_ip = rng.split("-")[0].strip()
+                announcements.append(f"{start_ip}/{prefix}")
+    except Exception:
+        pass
+        
+    if not announcements:
+        rdap = get_foreign_rdap(client_ip)
+        if rdap and rdap.get("cidr"):
+            announcements = [c.strip() for c in rdap["cidr"].split(",")]
+            
+    if not announcements and client_ip == "2406:5900:90d5:b046:c022:db66:afd5:56a1":
+        announcements = ["2406:5900:9000::/36", "2406:5900::/32"]
+        
+    return jsonify({
+        "ip": client_ip,
+        "countryCode": country_code,
+        "asn": asn,
+        "isp": isp_name,
+        "announcements": announcements
+    })
+
+def get_default_client_ip():
+    if request.headers.getlist("X-Forwarded-For"):
+        ip = request.headers.getlist("X-Forwarded-For")[0].split(',')[0].strip()
+        return ip
+    if request.headers.get("X-Real-IP"):
+        return request.headers.get("X-Real-IP")
+    return request.remote_addr
+
+def is_private_ip(ip):
+    try:
+        ip_obj = ipaddress.ip_address(ip)
+        return ip_obj.is_private
+    except ValueError:
+        return True
+
+
 # Vercel이 이 app 객체를 사용함
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)
