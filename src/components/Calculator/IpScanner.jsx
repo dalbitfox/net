@@ -128,6 +128,7 @@ const IpScanner = () => {
   // References for timers
   const scanIntervalRef = useRef(null);
   const fakeProgressTimerRef = useRef(null);
+  const loopTimeoutRef = useRef(null);
 
   const formatSpeed = (kbps) => {
     if (kbps >= 1024) {
@@ -136,28 +137,121 @@ const IpScanner = () => {
     return `${kbps.toFixed(1)} KB/s`;
   };
 
-  useEffect(() => {
-    // Attempt auto-detect subnet range on load
-    const detectLocalRange = async () => {
+  // WebRTC local IP auto-detect function
+  const detectWebRtcIp = () => {
+    return new Promise((resolve) => {
       try {
-        const response = await fetch(`${API_BASE}/api/scan_lan/local`);
-        if (response.ok) {
-          const data = await response.json();
-          if (data.success) {
-            setLocalInfo(data);
-            setIpRange(data.default_range);
-            setBackendError(null);
-            setIsSimulation(false); // real backend works!
-          }
-        } else {
-          throw new Error("Local backend returned non-ok status");
+        const RTCPeerConnection = window.RTCPeerConnection || window.webkitRTCPeerConnection || window.mozRTCPeerConnection;
+        if (!RTCPeerConnection) {
+          resolve(null);
+          return;
         }
-      } catch (err) {
-        console.warn("Local backend scanning API not available, falling back to Simulation Mode:", err);
-        setBackendError("로컬 백엔드가 실행 중이지 않아 시뮬레이션 모드로 전환되었습니다.");
-        setIsSimulation(true);
+        const pc = new RTCPeerConnection({ iceServers: [] });
+        pc.createDataChannel('');
+        pc.createOffer()
+          .then(offer => pc.setLocalDescription(offer))
+          .catch(() => resolve(null));
+        
+        let resolved = false;
+        pc.onicecandidate = (ice) => {
+          if (resolved || !ice || !ice.candidate || !ice.candidate.candidate) return;
+          const candidate = ice.candidate.candidate;
+          const ipRegex = /([0-9]{1,3}(\.[0-9]{1,3}){3})/;
+          const match = ipRegex.exec(candidate);
+          if (match) {
+            const ip = match[1];
+            if (ip !== '127.0.0.1' && !ip.startsWith('0.')) {
+              resolved = true;
+              resolve(ip);
+              try { pc.close(); } catch(_) {}
+            }
+          }
+        };
+        
+        setTimeout(() => {
+          if (!resolved) {
+            resolved = true;
+            resolve(null);
+            try { pc.close(); } catch(_) {}
+          }
+        }, 1500);
+      } catch (e) {
+        resolve(null);
       }
-    };
+    });
+  };
+
+  const detectLocalRange = async () => {
+    // 1. Try local backend
+    try {
+      const response = await fetch(`${API_BASE}/api/scan_lan/local`);
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success) {
+          setLocalInfo(data);
+          setIpRange(data.default_range);
+          setBackendError(null);
+          setIsSimulation(false); // real backend works!
+          return;
+        }
+      }
+    } catch (err) {
+      console.warn("Local backend scanning API not available, trying WebRTC fallback...", err);
+    }
+
+    // 2. Fallback to client-side WebRTC IP detection
+    const webRtcIp = await detectWebRtcIp();
+    if (webRtcIp) {
+      const parts = webRtcIp.split('.');
+      const defaultRange = `${parts[0]}.${parts[1]}.${parts[2]}.1-254`;
+      setLocalInfo({
+        success: true,
+        local_ip: webRtcIp,
+        gateway_ip: `${parts[0]}.${parts[1]}.${parts[2]}.1`,
+        default_range: defaultRange
+      });
+      setIpRange(defaultRange);
+      setBackendError("로컬 백엔드가 실행 중이지 않아 시뮬레이션 모드로 전환되었습니다.");
+      setIsSimulation(true);
+      return;
+    }
+
+    // 3. Fallback to client-info endpoint (Vercel public IP fallback)
+    try {
+      const response = await fetch('/api/client-info');
+      if (response.ok) {
+        const data = await response.json();
+        if (data.ip) {
+          const clientIp = data.ip;
+          const parts = clientIp.split('.');
+          let defaultRange = '192.168.0.1-254';
+          if (parts.length === 4) {
+            defaultRange = `${parts[0]}.${parts[1]}.${parts[2]}.1-254`;
+          }
+          setLocalInfo({
+            success: true,
+            local_ip: clientIp,
+            gateway_ip: parts.length === 4 ? `${parts[0]}.${parts[1]}.${parts[2]}.1` : 'Unknown',
+            default_range: defaultRange
+          });
+          setIpRange(defaultRange);
+          setBackendError("로컬 백엔드가 실행 중이지 않아 시뮬레이션 모드로 전환되었습니다.");
+          setIsSimulation(true);
+          return;
+        }
+      }
+    } catch (err) {
+      console.warn("Failed to fetch client info from server:", err);
+    }
+
+    // Final Fallback: default subnet
+    setLocalInfo(null);
+    setIpRange('192.168.0.1-254');
+    setBackendError("로컬 백엔드가 실행 중이지 않아 시뮬레이션 모드로 전환되었습니다.");
+    setIsSimulation(true);
+  };
+
+  useEffect(() => {
     detectLocalRange();
 
     // Clean up timers on unmount
@@ -168,6 +262,94 @@ const IpScanner = () => {
 
   useEffect(() => {
     const fetchMonitorData = async () => {
+      if (isSimulation) {
+        // Generate mock monitor data in simulation mode!
+        const localIp = localInfo?.local_ip || '192.168.0.100';
+        const gatewayIp = localInfo?.gateway_ip || '192.168.0.1';
+        
+        let gatewayRtt = Math.floor(Math.random() * 5) + 2; // 2-7ms
+        let speedRx = Math.random() * 145 + 5;
+        let speedTx = Math.random() * 29 + 1;
+        let ppsRx = Math.floor(Math.random() * 180) + 20;
+        let ppsTx = Math.floor(Math.random() * 90) + 10;
+        let ppsBroadcast = Math.random() * 11.5 + 0.5;
+        let loopingDetected = false;
+        let loopingReason = "네트워크 루핑 징후가 없습니다.";
+        let loopTypeResp = 'none';
+        
+        if (loopSimType !== 'off') {
+          gatewayRtt = 142;
+          speedRx = 12450.0;
+          speedTx = 6520.0;
+          ppsRx = 3450;
+          ppsTx = 2100;
+          ppsBroadcast = 2650;
+          loopingDetected = true;
+          loopTypeResp = loopSimType;
+          if (loopSimType === 'terminal') {
+            loopingReason = `단말 장애 루프 감지: ${gatewayIp.replace(/\.1$/, '.125')} 단말에서 초당 2650 pps의 비정상 브로드캐스트가 유출되고 있습니다.`;
+          } else {
+            loopingReason = "물리적 루프 발생: 네트워크 장비 간 이중 연결로 인한 초당 2650 pps의 패킷 순환 장애가 감지되었습니다.";
+          }
+        }
+        
+        const mockData = {
+          success: true,
+          local_ip: localIp,
+          gateway_ip: gatewayIp,
+          gateway_rtt: gatewayRtt,
+          arp_spoofing: {
+            detected: loopSimType === 'terminal',
+            details: loopSimType === 'terminal' ? [{
+              mac: '78:f2:38:80:6a:fe',
+              ips: [gatewayIp, gatewayIp.replace(/\.1$/, '.125')],
+              gateway_involved: true,
+              manufacturer: 'Samsung Electronics Co.,Ltd'
+            }] : [],
+            status: loopSimType === 'terminal' ? 'critical' : 'healthy'
+          },
+          looping: {
+            detected: loopingDetected,
+            loop_type: loopTypeResp,
+            culprit_ip: loopSimType === 'terminal' ? gatewayIp.replace(/\.1$/, '.125') : null,
+            culprit_mac: loopSimType === 'terminal' ? '78:f2:38:80:6a:fe' : null,
+            culprit_manufacturer: loopSimType === 'terminal' ? 'Samsung Electronics Co.,Ltd' : null,
+            reason: loopingReason,
+            status: loopingDetected ? 'warning' : 'healthy',
+            pps_broadcast: Math.floor(ppsBroadcast)
+          },
+          traffic: {
+            speed_rx_kbps: speedRx,
+            speed_tx_kbps: speedTx,
+            pps_rx: ppsRx,
+            pps_tx: ppsTx,
+            pps_broadcast: Math.floor(ppsBroadcast),
+            abnormal: loopSimType !== 'off',
+            culprit_ip: loopSimType === 'terminal' ? gatewayIp.replace(/\.1$/, '.125') : null,
+            culprit_mac: loopSimType === 'terminal' ? '78:f2:38:80:6a:fe' : null,
+            culprit_manufacturer: loopSimType === 'terminal' ? 'Samsung Electronics Co.,Ltd' : null,
+            reason: loopSimType !== 'off' ? '이상 과다 트래픽 감지' : '정상 수준의 대역폭 사용 중',
+            status: loopSimType !== 'off' ? 'warning' : 'healthy'
+          }
+        };
+        
+        setMonitorData(mockData);
+        if (activeTab === 'monitor') {
+          setTrafficHistory(prev => {
+            const next = [...prev, {
+              time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+              rx: speedRx,
+              tx: speedTx
+            }];
+            if (next.length > 30) {
+              return next.slice(next.length - 30);
+            }
+            return next;
+          });
+        }
+        return;
+      }
+      
       try {
         let path = '/api/network_monitor';
         if (loopSimType !== 'off') {
@@ -259,9 +441,16 @@ const IpScanner = () => {
         const updated = [...prev];
         for (let i = index - step; i < index && i < totalIps; i++) {
           const targetIp = updated[i].ip;
-          const mockMatch = MOCK_DEVICES.find(d => d.ip === targetIp);
+          const targetParts = targetIp.split('.');
+          const targetHostSuffix = targetParts[3];
+          
+          const mockMatch = MOCK_DEVICES.find(d => {
+            const mockParts = d.ip.split('.');
+            return mockParts[3] === targetHostSuffix;
+          });
+          
           if (mockMatch) {
-            updated[i] = { ...mockMatch };
+            updated[i] = { ...mockMatch, ip: targetIp };
           } else {
             updated[i] = { ...updated[i], status: 'dead' };
           }
@@ -538,8 +727,12 @@ const IpScanner = () => {
           <button 
             className="btn-simulation-toggle"
             onClick={() => {
-              setIsSimulation(!isSimulation);
-              if (isSimulation) setBackendError(null);
+              if (isSimulation) {
+                detectLocalRange();
+              } else {
+                setIsSimulation(true);
+                setBackendError("시뮬레이션 데모 모드가 활성화되었습니다.");
+              }
             }}
           >
             {isSimulation ? "로컬 백엔드 연결 시도" : "시뮬레이션 모드 전환"}
