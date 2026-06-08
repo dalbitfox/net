@@ -820,26 +820,116 @@
   border-color: transparent transparent #161616 transparent;
 }
 
-.ip-grid-cell .cell-tooltip.tooltip-left-align {
+/* Left alignment to prevent clipping on left edge (default 15-columns) */
+.ip-gui-grid > .ip-grid-cell:nth-child(15n+1) .cell-tooltip,
+.ip-gui-grid > .ip-grid-cell:nth-child(15n+2) .cell-tooltip {
   left: 0;
   transform: none;
 }
-
-.ip-grid-cell .cell-tooltip.tooltip-left-align::after {
+.ip-gui-grid > .ip-grid-cell:nth-child(15n+1) .cell-tooltip::after,
+.ip-gui-grid > .ip-grid-cell:nth-child(15n+2) .cell-tooltip::after {
   left: 20px;
   transform: none;
 }
 
-.ip-grid-cell .cell-tooltip.tooltip-right-align {
+/* Right alignment to prevent clipping on right edge (default 15-columns) */
+.ip-gui-grid > .ip-grid-cell:nth-child(15n+14) .cell-tooltip,
+.ip-gui-grid > .ip-grid-cell:nth-child(15n) .cell-tooltip {
   left: auto;
   right: 0;
   transform: none;
 }
-
-.ip-grid-cell .cell-tooltip.tooltip-right-align::after {
+.ip-gui-grid > .ip-grid-cell:nth-child(15n+14) .cell-tooltip::after,
+.ip-gui-grid > .ip-grid-cell:nth-child(15n) .cell-tooltip::after {
   left: auto;
   right: 20px;
   transform: none;
+}
+
+/* Responsive Overrides for 10-column layout */
+@media (max-width: 900px) {
+  /* Reset default 15-column styles first */
+  .ip-gui-grid > .ip-grid-cell .cell-tooltip {
+    left: 50%;
+    right: auto;
+    transform: translateX(-50%);
+  }
+  .ip-gui-grid > .ip-grid-cell .cell-tooltip::after {
+    left: 50%;
+    right: auto;
+    transform: translateX(-50%);
+  }
+
+  /* 10-column Left alignment */
+  .ip-gui-grid > .ip-grid-cell:nth-child(10n+1) .cell-tooltip,
+  .ip-gui-grid > .ip-grid-cell:nth-child(10n+2) .cell-tooltip {
+    left: 0;
+    right: auto;
+    transform: none;
+  }
+  .ip-gui-grid > .ip-grid-cell:nth-child(10n+1) .cell-tooltip::after,
+  .ip-gui-grid > .ip-grid-cell:nth-child(10n+2) .cell-tooltip::after {
+    left: 20px;
+    right: auto;
+    transform: none;
+  }
+
+  /* 10-column Right alignment */
+  .ip-gui-grid > .ip-grid-cell:nth-child(10n+9) .cell-tooltip,
+  .ip-gui-grid > .ip-grid-cell:nth-child(10n) .cell-tooltip {
+    left: auto;
+    right: 0;
+    transform: none;
+  }
+  .ip-gui-grid > .ip-grid-cell:nth-child(10n+9) .cell-tooltip::after,
+  .ip-gui-grid > .ip-grid-cell:nth-child(10n) .cell-tooltip::after {
+    left: auto;
+    right: 20px;
+    transform: none;
+  }
+}
+
+/* Responsive Overrides for 6-column layout */
+@media (max-width: 600px) {
+  /* Reset styles first */
+  .ip-gui-grid > .ip-grid-cell .cell-tooltip {
+    left: 50%;
+    right: auto;
+    transform: translateX(-50%);
+  }
+  .ip-gui-grid > .ip-grid-cell .cell-tooltip::after {
+    left: 50%;
+    right: auto;
+    transform: translateX(-50%);
+  }
+
+  /* 6-column Left alignment */
+  .ip-gui-grid > .ip-grid-cell:nth-child(6n+1) .cell-tooltip,
+  .ip-gui-grid > .ip-grid-cell:nth-child(6n+2) .cell-tooltip {
+    left: 0;
+    right: auto;
+    transform: none;
+  }
+  .ip-gui-grid > .ip-grid-cell:nth-child(6n+1) .cell-tooltip::after,
+  .ip-gui-grid > .ip-grid-cell:nth-child(6n+2) .cell-tooltip::after {
+    left: 20px;
+    right: auto;
+    transform: none;
+  }
+
+  /* 6-column Right alignment */
+  .ip-gui-grid > .ip-grid-cell:nth-child(6n+5) .cell-tooltip,
+  .ip-gui-grid > .ip-grid-cell:nth-child(6n) .cell-tooltip {
+    left: auto;
+    right: 0;
+    transform: none;
+  }
+  .ip-gui-grid > .ip-grid-cell:nth-child(6n+5) .cell-tooltip::after,
+  .ip-gui-grid > .ip-grid-cell:nth-child(6n) .cell-tooltip::after {
+    left: auto;
+    right: 20px;
+    transform: none;
+  }
 }
 
 .tooltip-ip {

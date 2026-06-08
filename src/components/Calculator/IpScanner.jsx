@@ -1249,9 +1249,7 @@ const IpScanner = () => {
                       const isSpoofed = spoofedIps.has(device.ip);
                       
                       const isTopRow = index < 30;
-                      const isLeftCol = (index % 15) < 2;
-                      const isRightCol = (index % 15) > 12;
-                      const tooltipClass = `cell-tooltip${isTopRow ? ' tooltip-bottom' : ''}${isLeftCol ? ' tooltip-left-align' : ''}${isRightCol ? ' tooltip-right-align' : ''}`;
+                      const tooltipClass = `cell-tooltip${isTopRow ? ' tooltip-bottom' : ''}`;
 
                       return (
                         <div 
