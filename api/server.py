@@ -1109,7 +1109,12 @@ def resolve_device_name(ip):
         pass
     return None
 
-def get_my_mac():
+def get_my_mac(local_ip=None):
+    if local_ip and local_ip != '127.0.0.1':
+        mac = get_mac_send_arp(local_ip)
+        if mac:
+            return mac
+            
     import uuid
     try:
         mac = uuid.getnode()
@@ -1123,6 +1128,21 @@ def scan_lan_device(ip, my_ip, my_mac, arp_cache):
     hostname = None
     open_ports = []
     
+    # Pre-filter: ignore multicast, loopback/reserved IPs, and global broadcast
+    try:
+        ip_obj = ipaddress.ip_address(ip)
+        if ip_obj.is_multicast or ip_obj.is_reserved or ip_obj.is_link_local or ip == '255.255.255.255':
+            return {
+                'ip': ip,
+                'mac': '-',
+                'hostname': 'N/A',
+                'manufacturer': '-',
+                'status': 'dead',
+                'ports': []
+            }
+    except Exception:
+        pass
+    
     if ip == my_ip:
         is_alive = True
         mac = my_mac
@@ -1132,12 +1152,16 @@ def scan_lan_device(ip, my_ip, my_mac, arp_cache):
         system_name = platform.system().lower()
         if 'windows' in system_name:
             mac = get_mac_send_arp(ip)
-            if mac:
+            if mac and mac.lower() not in ('ff:ff:ff:ff:ff:ff', '00:00:00:00:00:00') and not mac.lower().startswith('01:00:5e') and not mac.lower().startswith('33:33'):
                 is_alive = True
+            else:
+                mac = None
         
         if not is_alive and ip in arp_cache:
-            mac = arp_cache[ip]
-            is_alive = True
+            temp_mac = arp_cache[ip]
+            if temp_mac and temp_mac.lower() not in ('ff:ff:ff:ff:ff:ff', '00:00:00:00:00:00') and not temp_mac.lower().startswith('01:00:5e') and not temp_mac.lower().startswith('33:33'):
+                mac = temp_mac
+                is_alive = True
             
         if not is_alive:
             for port in [135, 445, 80, 137]:
@@ -1155,7 +1179,11 @@ def scan_lan_device(ip, my_ip, my_mac, arp_cache):
             if is_alive:
                 refreshed = get_arp_table()
                 if ip in refreshed:
-                    mac = refreshed[ip]
+                    temp_mac = refreshed[ip]
+                    if temp_mac and temp_mac.lower() not in ('ff:ff:ff:ff:ff:ff', '00:00:00:00:00:00') and not temp_mac.lower().startswith('01:00:5e') and not temp_mac.lower().startswith('33:33'):
+                        mac = temp_mac
+                    else:
+                        is_alive = False  # Ignore broadcast/multicast MAC responses
                 else:
                     mac = '00:00:00:00:00:00'
                     
@@ -1287,7 +1315,7 @@ def scan_lan():
             return jsonify({'error': '잘못된 IP 주소 대역 형식입니다.'}), 400
             
         local_ip = get_primary_local_ip()
-        my_mac = get_my_mac()
+        my_mac = get_my_mac(local_ip)
         arp_cache = get_arp_table()
         
         def generate():
