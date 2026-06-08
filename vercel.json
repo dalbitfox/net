@@ -5,18 +5,5 @@
             "source": "/api/(.*)",
             "destination": "/api/server.py"
         }
-    ],
-    "builds": [
-        {
-            "src": "api/server.py",
-            "use": "@vercel/python"
-        },
-        {
-            "src": "package.json",
-            "use": "@vercel/static-build",
-            "config": {
-                "distDir": "dist"
-            }
-        }
     ]
 }
