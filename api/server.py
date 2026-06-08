@@ -803,6 +803,12 @@ def ping_host():
                 stats['avg_time'] = float(time_match.group(3))
                 stats['max_time'] = float(time_match.group(4))
 
+        # 만약 ICMP 핑 응답을 받은 패킷이 0개인 경우 (방화벽 차단 등)
+        # 자동으로 TCP 핑(Fallback)을 다시 시도하여 목적지가 살아있는지 검증합니다.
+        if stats['received'] == 0:
+            fallback_res = run_tcp_ping_fallback(host, count, timeout)
+            return jsonify(fallback_res)
+
         return jsonify({
             'success': process.returncode == 0 and stats['received'] > 0,
             'stdout': stdout,
