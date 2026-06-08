@@ -261,6 +261,10 @@ const IpScanner = () => {
   }, []);
 
   useEffect(() => {
+    if (activeTab !== 'monitor' || isScanning) {
+      return;
+    }
+
     const fetchMonitorData = async () => {
       if (isSimulation) {
         // Generate mock monitor data in simulation mode!
@@ -385,7 +389,7 @@ const IpScanner = () => {
     fetchMonitorData();
     const interval = setInterval(fetchMonitorData, 3000);
     return () => clearInterval(interval);
-  }, [activeTab, loopSimType]);
+  }, [activeTab, loopSimType, isScanning, isSimulation, localInfo]);
 
   const stopAllTimers = () => {
     if (scanIntervalRef.current) clearInterval(scanIntervalRef.current);
