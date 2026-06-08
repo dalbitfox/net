@@ -1153,15 +1153,22 @@ def scan_lan_device(ip, my_ip, my_mac, arp_cache):
         if 'windows' in system_name:
             mac = get_mac_send_arp(ip)
             if mac and mac.lower() not in ('ff:ff:ff:ff:ff:ff', '00:00:00:00:00:00') and not mac.lower().startswith('01:00:5e') and not mac.lower().startswith('33:33'):
-                is_alive = True
+                # Ignore loopback/broadcast resolving to our local MAC address for other IPs
+                if my_mac and mac.lower() == my_mac.lower():
+                    mac = None
+                else:
+                    is_alive = True
             else:
                 mac = None
         
         if not is_alive and ip in arp_cache:
             temp_mac = arp_cache[ip]
             if temp_mac and temp_mac.lower() not in ('ff:ff:ff:ff:ff:ff', '00:00:00:00:00:00') and not temp_mac.lower().startswith('01:00:5e') and not temp_mac.lower().startswith('33:33'):
-                mac = temp_mac
-                is_alive = True
+                if my_mac and temp_mac.lower() == my_mac.lower():
+                    pass
+                else:
+                    mac = temp_mac
+                    is_alive = True
             
         if not is_alive:
             for port in [135, 445, 80, 137]:
@@ -1181,7 +1188,10 @@ def scan_lan_device(ip, my_ip, my_mac, arp_cache):
                 if ip in refreshed:
                     temp_mac = refreshed[ip]
                     if temp_mac and temp_mac.lower() not in ('ff:ff:ff:ff:ff:ff', '00:00:00:00:00:00') and not temp_mac.lower().startswith('01:00:5e') and not temp_mac.lower().startswith('33:33'):
-                        mac = temp_mac
+                        if my_mac and temp_mac.lower() == my_mac.lower():
+                            is_alive = False
+                        else:
+                            mac = temp_mac
                     else:
                         is_alive = False  # Ignore broadcast/multicast MAC responses
                 else:
