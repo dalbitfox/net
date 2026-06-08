@@ -13,9 +13,30 @@ const IpTracker = () => {
         const fetchClientInfo = async () => {
             let publicIpData = null;
             
-            // 1. 프론트엔드에서 공인 IP 및 기본 정보 조회 시도 (ipwho.is)
+            // 1. 프론트엔드에서 공인 IPv4 및 기본 정보 조회 시도 (api4.ipify.org -> ipwho.is)
             try {
-                const ipwhoisRes = await fetch('https://ipwho.is/');
+                let ipv4 = '';
+                try {
+                    const ipifyRes = await fetch('https://api4.ipify.org?format=json');
+                    if (ipifyRes.ok) {
+                        const ipifyData = await ipifyRes.json();
+                        ipv4 = ipifyData.ip;
+                    }
+                } catch (ipifyErr) {
+                    console.warn("Failed to fetch IPv4 from ipify:", ipifyErr);
+                    try {
+                        const seeipRes = await fetch('https://ip4.seeip.org/json');
+                        if (seeipRes.ok) {
+                            const seeipData = await seeipRes.json();
+                            ipv4 = seeipData.ip;
+                        }
+                    } catch (seeipErr) {
+                        console.warn("Failed to fetch IPv4 from seeip:", seeipErr);
+                    }
+                }
+
+                const url = ipv4 ? `https://ipwho.is/${ipv4}` : 'https://ipwho.is/';
+                const ipwhoisRes = await fetch(url);
                 if (ipwhoisRes.ok) {
                     const data = await ipwhoisRes.json();
                     if (data.success) {
@@ -23,7 +44,7 @@ const IpTracker = () => {
                     }
                 }
             } catch (err) {
-                console.warn("Failed to fetch public IP from ipwho.is:", err);
+                console.warn("Failed to fetch public IP details:", err);
             }
 
             // 2. 백엔드 API 호출 시도 (공인 IP 전달하여 KISA 대역 정보 및 로컬 사설 IP 결합)
@@ -173,11 +194,13 @@ const IpTracker = () => {
             };
 
             if (whois.korean) {
-                renderNetBlock(whois.korean.PI, 'KRNIC PI/ISP (Korean)');
+                renderNetBlock(whois.korean.PI, 'KRNIC PI (Korean)');
+                renderNetBlock(whois.korean.ISP, 'KRNIC ISP (Korean)');
                 renderNetBlock(whois.korean.user, 'End User (Korean)');
             }
             if (whois.english) {
-                renderNetBlock(whois.english.PI, 'KRNIC PI/ISP (English)');
+                renderNetBlock(whois.english.PI, 'KRNIC PI (English)');
+                renderNetBlock(whois.english.ISP, 'KRNIC ISP (English)');
                 renderNetBlock(whois.english.user, 'End User (English)');
             }
         } else if (whois.queryType === 'ASN') {
@@ -456,9 +479,10 @@ const IpTracker = () => {
 
         // 통신사(ISP) 및 주요 요약 정보 추출
         const piBlock = whois.korean?.PI || whois.english?.PI;
+        const ispBlock = whois.korean?.ISP || whois.english?.ISP;
         const userBlock = whois.korean?.user || whois.english?.user;
-        const ispName = piBlock?.netinfo?.orgName || userBlock?.netinfo?.orgName || '-';
-        const servName = piBlock?.netinfo?.servName || userBlock?.netinfo?.servName ? ` (${piBlock?.netinfo?.servName || userBlock?.netinfo?.servName})` : '';
+        const ispName = piBlock?.netinfo?.orgName || ispBlock?.netinfo?.orgName || userBlock?.netinfo?.orgName || '-';
+        const servName = piBlock?.netinfo?.servName || ispBlock?.netinfo?.servName || userBlock?.netinfo?.servName ? ` (${piBlock?.netinfo?.servName || ispBlock?.netinfo?.servName || userBlock?.netinfo?.servName})` : '';
         const ispFull = `${ispName}${servName}`;
 
         const rdap = whois.rdap || null;
@@ -519,7 +543,8 @@ const IpTracker = () => {
 
                 <div className="whois-card-grid">
                     {/* PI/ISP 할당 정보 */}
-                    {activeBlock.PI && renderIpBlockDetails(activeBlock.PI, `${activeLang === 'ko' ? 'ISP / 할당 대행 기관 정보 (KISA)' : 'ISP Allocation Provider Info (KISA)'}`)}
+                    {activeBlock.PI && renderIpBlockDetails(activeBlock.PI, `${activeLang === 'ko' ? 'PI 할당 기관 정보 (KISA)' : 'PI Allocation Provider Info (KISA)'}`)}
+                    {activeBlock.ISP && renderIpBlockDetails(activeBlock.ISP, `${activeLang === 'ko' ? 'ISP / 할당 대행 기관 정보 (KISA)' : 'ISP Allocation Provider Info (KISA)'}`)}
                     
                     {/* 최종 사용자 할당 정보 */}
                     {activeBlock.user && renderIpBlockDetails(activeBlock.user, `${activeLang === 'ko' ? '최종 사용자 기관 정보 (User Network)' : 'End User Organization Info'}`)}
@@ -1025,28 +1050,28 @@ const IpTracker = () => {
                                     )}
                                 </div>
 
-                                {clientInfo.privateIp && (
-                                    <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap' }}>
-                                        <span>Your LAN/Private IP is&nbsp;</span>
-                                        <span style={{ fontWeight: 'bold', textDecoration: 'underline', color: '#ff453a', fontFamily: 'monospace' }}>{clientInfo.privateIp}</span>
-                                        <span style={{
-                                            display: 'inline-flex',
-                                            alignItems: 'center',
-                                            justifyContent: 'center',
-                                            border: '1px solid #ff453a',
-                                            borderRadius: '3px',
-                                            padding: '0.05rem 0.25rem',
-                                            fontSize: '0.7rem',
-                                            marginLeft: '0.5rem',
-                                            backgroundColor: 'rgba(255, 69, 58, 0.1)',
-                                            color: '#ff453a',
-                                            fontWeight: 'bold',
-                                            verticalAlign: 'middle'
-                                        }}>
-                                            LAN / PRIVATE
-                                        </span>
-                                    </div>
-                                )}
+                                <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap' }}>
+                                    <span>Your LAN/Private IP is&nbsp;</span>
+                                    <span style={{ fontWeight: 'bold', textDecoration: 'underline', color: clientInfo.privateIp ? '#ff453a' : 'var(--accent)', fontFamily: 'monospace' }}>
+                                        {clientInfo.privateIp || clientInfo.ip}
+                                    </span>
+                                    <span style={{
+                                        display: 'inline-flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        border: `1px solid ${clientInfo.privateIp ? '#ff453a' : 'var(--accent)'}`,
+                                        borderRadius: '3px',
+                                        padding: '0.05rem 0.25rem',
+                                        fontSize: '0.7rem',
+                                        marginLeft: '0.5rem',
+                                        backgroundColor: clientInfo.privateIp ? 'rgba(255, 69, 58, 0.1)' : 'rgba(16, 185, 129, 0.1)',
+                                        color: clientInfo.privateIp ? '#ff453a' : 'var(--highlight-green)',
+                                        fontWeight: 'bold',
+                                        verticalAlign: 'middle'
+                                    }}>
+                                        {clientInfo.privateIp ? 'LAN / PRIVATE' : 'PUBLIC'}
+                                    </span>
+                                </div>
 
                                 {clientInfo.announcements && clientInfo.announcements.map((cidr, idx) => (
                                     <div key={idx} style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap' }}>

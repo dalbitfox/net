@@ -822,14 +822,17 @@ def get_client_info_endpoint():
     actual_remote_ip = get_default_client_ip()
     private_ip = None
     if is_private_ip(actual_remote_ip):
-        private_ip = actual_remote_ip
-        
+        if actual_remote_ip in ('127.0.0.1', '::1', 'localhost'):
+            private_ip = get_primary_local_ip() or actual_remote_ip
+        else:
+            private_ip = actual_remote_ip
+            
     client_ip = request.args.get('ip', '').strip()
     if not client_ip:
         client_ip = actual_remote_ip
         
     if is_private_ip(client_ip):
-        client_ip = "2406:5900:90d5:b046:c022:db66:afd5:56a1"
+        client_ip = "1.209.237.132"
         
     try:
         r = requests.get(f"http://ip-api.com/json/{client_ip}", timeout=5)
@@ -866,7 +869,8 @@ def get_client_info_endpoint():
             prefix = net.get("prefix", "")
             if rng and prefix:
                 start_ip = rng.split("-")[0].strip()
-                announcements.append(f"{start_ip}/{prefix}")
+                pref = prefix.lstrip("/")
+                announcements.append(f"{start_ip}/{pref}")
                 
         # PI block
         pi_block = whois_data.get("korean", {}).get("PI") or whois_data.get("english", {}).get("PI")
@@ -876,7 +880,19 @@ def get_client_info_endpoint():
             prefix = net.get("prefix", "")
             if rng and prefix:
                 start_ip = rng.split("-")[0].strip()
-                announcements.append(f"{start_ip}/{prefix}")
+                pref = prefix.lstrip("/")
+                announcements.append(f"{start_ip}/{pref}")
+
+        # ISP block
+        isp_block = whois_data.get("korean", {}).get("ISP") or whois_data.get("english", {}).get("ISP")
+        if isp_block and isp_block.get("netinfo"):
+            net = isp_block["netinfo"]
+            rng = net.get("range", "")
+            prefix = net.get("prefix", "")
+            if rng and prefix:
+                start_ip = rng.split("-")[0].strip()
+                pref = prefix.lstrip("/")
+                announcements.append(f"{start_ip}/{pref}")
     except Exception:
         pass
         
@@ -885,7 +901,9 @@ def get_client_info_endpoint():
         if rdap and rdap.get("cidr"):
             announcements = [c.strip() for c in rdap["cidr"].split(",")]
             
-    if not announcements and client_ip == "2406:5900:90d5:b046:c022:db66:afd5:56a1":
+    if not announcements and client_ip == "1.209.237.132":
+        announcements = ["1.208.0.0/12"]
+    elif not announcements and client_ip == "2406:5900:90d5:b046:c022:db66:afd5:56a1":
         announcements = ["2406:5900:9000::/36", "2406:5900::/32"]
         
     return jsonify({
