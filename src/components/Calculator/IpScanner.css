@@ -2086,3 +2086,10 @@
   min-width: 35px;
   text-align: right;
 }
+
+.feature-hover-card:hover {
+  transform: translateY(-2px);
+  background: linear-gradient(180deg, rgba(0, 191, 255, 0.04) 0%, rgba(0, 191, 255, 0.01) 100%) !important;
+  border-color: rgba(0, 191, 255, 0.25) !important;
+  box-shadow: 0 6px 20px rgba(0, 191, 255, 0.08);
+}

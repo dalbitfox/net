@@ -895,57 +895,163 @@ const IpScanner = () => {
 
           <div style={{ padding: '2.5rem 2rem', display: 'flex', flexDirection: 'column', gap: '2.5rem' }}>
             {/* Header section */}
-            <div style={{ textAlign: 'center' }}>
-              <h1 style={{ fontSize: '2.2rem', background: 'linear-gradient(135deg, var(--text-primary) 30%, var(--accent) 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', marginBottom: '0.75rem', fontWeight: '800', letterSpacing: '-0.5px' }}>
+            <div style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.75rem' }}>
+              <h1 style={{ fontSize: '2rem', background: 'linear-gradient(135deg, var(--text-primary) 30%, var(--accent) 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', margin: 0, fontWeight: '800', letterSpacing: '-0.5px' }}>
                 로컬 네트워크 진단 & IP 스캐너
               </h1>
-              <p style={{ color: 'var(--text-secondary)', lineHeight: '1.6', maxWidth: '750px', margin: '0 auto', fontSize: '1rem' }}>
-                웹 브라우저의 보안 정책(Mixed Content 및 Private Network Access 차단)으로 인해, 외부 웹사이트에서는 사용자의 사설 네트워크 대역(LAN) 내의 기기를 직접 스캔하거나 MAC 주소를 수집할 수 없습니다. 
-                모든 분석 기능은 안전한 **로컬 환경**에서 직접 실행하거나 **로컬 에이전트**를 통해 정상 동작합니다.
+              <p style={{ color: 'var(--text-secondary)', lineHeight: '1.5', maxWidth: '600px', margin: 0, fontSize: '0.9rem' }}>
+                브라우저 보안 규정상 외부 웹에서는 사설 네트워크를 직접 스캔할 수 없습니다.<br />
+                모든 분석 및 실시간 모니터링 기능은 <strong>로컬 에이전트</strong>를 통해 안전하게 수행됩니다.
               </p>
               {localInfo && localInfo.local_ip && (
-                <div style={{ display: 'inline-block', marginTop: '1rem', padding: '0.4rem 1rem', background: 'rgba(0, 191, 255, 0.08)', borderRadius: '20px', border: '1px solid rgba(0, 191, 255, 0.2)', fontSize: '0.85rem', color: 'var(--accent)', fontWeight: '600' }}>
-                  🔍 감지된 현재 기기 IP: <span style={{ fontFamily: 'monospace', fontSize: '0.95rem' }}>{localInfo.local_ip}</span>
+                <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', marginTop: '0.25rem', padding: '0.3rem 0.8rem', background: 'rgba(0, 191, 255, 0.06)', borderRadius: '20px', border: '1px solid rgba(0, 191, 255, 0.15)', fontSize: '0.8rem', color: 'var(--accent)', fontWeight: '600' }}>
+                  <span>🔍 감지된 로컬 IP:</span> <span style={{ fontFamily: 'monospace', fontSize: '0.9rem' }}>{localInfo.local_ip}</span>
                 </div>
               )}
             </div>
 
             {/* Feature Cards Grid */}
-            <div>
-              <h2 style={{ fontSize: '1.2rem', color: 'var(--text-primary)', marginBottom: '1.25rem', fontWeight: '700', textAlign: 'center' }}>
-                🛠️ 제공하는 핵심 네트워크 진단 기능
-              </h2>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1.5rem' }}>
-                <div className="monitor-card status-healthy" style={{ margin: 0, padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.75rem', minHeight: 'auto', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '8px', transition: 'all 0.3s ease' }}>
-                  <div style={{ fontSize: '2rem' }}>🖥️</div>
-                  <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 'bold', color: 'var(--text-primary)' }}>IP 연결 현황 (GUI 뷰)</h3>
-                  <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-secondary)', lineHeight: '1.6' }}>
-                    15열의 반응형 그리드로 전체 254개 사설 대역 IP 주소 연결 상태(사용 중, 사용 가능)를 시각적 바둑판으로 매핑하여 한눈에 파악합니다.
-                  </p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+              <div style={{ textAlign: 'center', position: 'relative' }}>
+                <div style={{
+                  position: 'absolute',
+                  top: '50%',
+                  left: '50%',
+                  transform: 'translate(-50%, -50%)',
+                  width: '180px',
+                  height: '40px',
+                  background: 'radial-gradient(circle, rgba(0, 191, 255, 0.15) 0%, transparent 70%)',
+                  filter: 'blur(10px)',
+                  zIndex: 0
+                }} />
+                <h2 style={{ fontSize: '1.15rem', color: 'var(--text-primary)', fontWeight: '700', letterSpacing: '-0.3px', margin: 0, zIndex: 1, position: 'relative', display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <span style={{ fontSize: '1rem', color: 'var(--accent)' }}>✦</span> 제공하는 핵심 진단 기능
+                </h2>
+              </div>
+              
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1rem' }}>
+                {/* Card 1 */}
+                <div className="feature-hover-card" style={{
+                  padding: '1.25rem',
+                  background: 'linear-gradient(180deg, rgba(255,255,255,0.02) 0%, rgba(255,255,255,0.01) 100%)',
+                  border: '1px solid rgba(255,255,255,0.05)',
+                  borderRadius: '10px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '1rem',
+                  transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)'
+                }}>
+                  <div style={{
+                    width: '44px',
+                    height: '44px',
+                    borderRadius: '8px',
+                    background: 'rgba(0, 191, 255, 0.08)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '1.5rem',
+                    flexShrink: 0,
+                    border: '1px solid rgba(0, 191, 255, 0.15)'
+                  }}>🖥️</div>
+                  <div>
+                    <h3 style={{ margin: '0 0 0.25rem 0', fontSize: '0.95rem', fontWeight: '600', color: 'var(--text-primary)' }}>IP 연결 현황 (GUI 뷰)</h3>
+                    <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--text-secondary)', lineHeight: '1.4' }}>
+                      254개 사설 IP 대역의 기기 연결 분포를 실시간 바둑판 그리드로 매핑합니다.
+                    </p>
+                  </div>
                 </div>
 
-                <div className="monitor-card status-healthy" style={{ margin: 0, padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.75rem', minHeight: 'auto', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '8px', transition: 'all 0.3s ease' }}>
-                  <div style={{ fontSize: '2rem' }}>🔍</div>
-                  <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 'bold', color: 'var(--text-primary)' }}>열린 포트 및 서비스 스캔</h3>
-                  <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-secondary)', lineHeight: '1.6' }}>
-                    각 장치에서 구동 중인 주요 서비스 포트(HTTP, HTTPS, SSH, FTP, SMB, RDP 등)를 고속 스캔하여 바로 접속 가능한 URL 링크를 자동 제공합니다.
-                  </p>
+                {/* Card 2 */}
+                <div className="feature-hover-card" style={{
+                  padding: '1.25rem',
+                  background: 'linear-gradient(180deg, rgba(255,255,255,0.02) 0%, rgba(255,255,255,0.01) 100%)',
+                  border: '1px solid rgba(255,255,255,0.05)',
+                  borderRadius: '10px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '1rem',
+                  transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)'
+                }}>
+                  <div style={{
+                    width: '44px',
+                    height: '44px',
+                    borderRadius: '8px',
+                    background: 'rgba(0, 191, 255, 0.08)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '1.5rem',
+                    flexShrink: 0,
+                    border: '1px solid rgba(0, 191, 255, 0.15)'
+                  }}>🔍</div>
+                  <div>
+                    <h3 style={{ margin: '0 0 0.25rem 0', fontSize: '0.95rem', fontWeight: '600', color: 'var(--text-primary)' }}>포트 및 서비스 스캔</h3>
+                    <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--text-secondary)', lineHeight: '1.4' }}>
+                      HTTP, SSH 등 주요 개방 포트 고속 스캔 및 원클릭 접속 URL 링크를 제공합니다.
+                    </p>
+                  </div>
                 </div>
 
-                <div className="monitor-card status-healthy" style={{ margin: 0, padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.75rem', minHeight: 'auto', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '8px', transition: 'all 0.3s ease' }}>
-                  <div style={{ fontSize: '2rem' }}>🏷️</div>
-                  <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 'bold', color: 'var(--text-primary)' }}>기기 식별 & OUI 조회</h3>
-                  <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-secondary)', lineHeight: '1.6' }}>
-                    네트워크 단말의 MAC 주소를 추출하고 하드웨어 제조사 OUI 데이터베이스와 매핑해 기기의 브랜드(Samsung, Apple, HP, Switch 등)를 조회합니다.
-                  </p>
+                {/* Card 3 */}
+                <div className="feature-hover-card" style={{
+                  padding: '1.25rem',
+                  background: 'linear-gradient(180deg, rgba(255,255,255,0.02) 0%, rgba(255,255,255,0.01) 100%)',
+                  border: '1px solid rgba(255,255,255,0.05)',
+                  borderRadius: '10px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '1rem',
+                  transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)'
+                }}>
+                  <div style={{
+                    width: '44px',
+                    height: '44px',
+                    borderRadius: '8px',
+                    background: 'rgba(0, 191, 255, 0.08)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '1.5rem',
+                    flexShrink: 0,
+                    border: '1px solid rgba(0, 191, 255, 0.15)'
+                  }}>🏷️</div>
+                  <div>
+                    <h3 style={{ margin: '0 0 0.25rem 0', fontSize: '0.95rem', fontWeight: '600', color: 'var(--text-primary)' }}>기기 식별 & OUI 조회</h3>
+                    <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--text-secondary)', lineHeight: '1.4' }}>
+                      MAC OUI 데이터 분석으로 삼성, Apple, ipTIME 등 제조사 브랜드를 자동 확인합니다.
+                    </p>
+                  </div>
                 </div>
 
-                <div className="monitor-card status-healthy" style={{ margin: 0, padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.75rem', minHeight: 'auto', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '8px', transition: 'all 0.3s ease' }}>
-                  <div style={{ fontSize: '2rem' }}>🛡️</div>
-                  <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 'bold', color: 'var(--text-primary)' }}>보안 위협 & 장애 진단</h3>
-                  <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-secondary)', lineHeight: '1.6' }}>
-                    실시간 트래픽 패킷 분석, 동일 MAC 주소 중복 매핑(ARP 스푸핑 공격) 검출 및 케이블 이중 루핑(Looping) 장애 경보 시스템을 갖추고 있습니다.
-                  </p>
+                {/* Card 4 */}
+                <div className="feature-hover-card" style={{
+                  padding: '1.25rem',
+                  background: 'linear-gradient(180deg, rgba(255,255,255,0.02) 0%, rgba(255,255,255,0.01) 100%)',
+                  border: '1px solid rgba(255,255,255,0.05)',
+                  borderRadius: '10px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '1rem',
+                  transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)'
+                }}>
+                  <div style={{
+                    width: '44px',
+                    height: '44px',
+                    borderRadius: '8px',
+                    background: 'rgba(0, 191, 255, 0.08)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '1.5rem',
+                    flexShrink: 0,
+                    border: '1px solid rgba(0, 191, 255, 0.15)'
+                  }}>🛡️</div>
+                  <div>
+                    <h3 style={{ margin: '0 0 0.25rem 0', fontSize: '0.95rem', fontWeight: '600', color: 'var(--text-primary)' }}>보안 위협 & 장애 진단</h3>
+                    <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--text-secondary)', lineHeight: '1.4' }}>
+                      ARP 스푸핑 공격 검출 및 이중 루핑(Looping) 오결선 장애 경보를 지원합니다.
+                    </p>
+                  </div>
                 </div>
               </div>
             </div>
