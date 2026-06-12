@@ -90,7 +90,19 @@ const MOCK_DEVICES = [
   { ip: '192.168.0.110', mac: '00:1F:D0:2E:3C:C9', hostname: 'PATRICK', manufacturer: 'GIGA-BYTE TECHNOLOGY CO., LTD.', status: 'alive', ports: [{ port: 80, service: 'HTTP' }, { port: 443, service: 'HTTPS' }, { port: 21, service: 'FTP' }, { port: 445, service: 'SMB (Shared Folders)' }, { port: 3389, service: 'RDP (Remote Desktop)' }, { port: 4899, service: 'Radmin' }] }
 ];
 
-const API_BASE = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') ? '' : 'http://127.0.0.1:5000';
+const isPrivateOrLocalIp = (hostname) => {
+  if (hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '::1') return true;
+  if (hostname.startsWith('192.168.')) return true;
+  if (hostname.startsWith('10.')) return true;
+  const match = hostname.match(/^172\.(\d+)\./);
+  if (match) {
+    const secondOctet = parseInt(match[1], 10);
+    if (secondOctet >= 16 && secondOctet <= 31) return true;
+  }
+  return false;
+};
+
+const API_BASE = (isPrivateOrLocalIp(window.location.hostname) || window.location.port === '5000') ? '' : 'http://127.0.0.1:5000';
 
 const IpScanner = () => {
   const [ipRange, setIpRange] = useState('192.168.0.1-254');
@@ -115,6 +127,8 @@ const IpScanner = () => {
   const [localInfo, setLocalInfo] = useState(null);
   const [backendError, setBackendError] = useState(null);
   const [apiBase, setApiBase] = useState(API_BASE);
+  const [isBackendConnected, setIsBackendConnected] = useState(false);
+  const [showDemo, setShowDemo] = useState(false);
 
   // Monitor & Traffic Stats State
   const [monitorData, setMonitorData] = useState(null);
@@ -212,10 +226,13 @@ const IpScanner = () => {
         resolve(null);
       }
     });
-  };
+  };  const detectLocalRange = async () => {
+    let connected = false;
+    let detectedIp = null;
+    let gatewayIp = null;
+    let defaultRange = '192.168.0.1-254';
 
-  const detectLocalRange = async () => {
-    // 1. Try local backend
+    // 1. Try local backend first to check if agent is active
     try {
       const response = await fetch(`${API_BASE}/api/scan_lan/local`);
       if (response.ok) {
@@ -227,8 +244,10 @@ const IpScanner = () => {
           });
           setIpRange(data.default_range);
           setBackendError(null);
-          setIsSimulation(false); // real backend works!
+          setIsSimulation(false);
           setApiBase(API_BASE);
+          setIsBackendConnected(true);
+          connected = true;
           return;
         }
       }
@@ -236,72 +255,52 @@ const IpScanner = () => {
       console.warn("Local backend scanning API not available, trying WebRTC fallback...", err);
     }
 
-    // 2. Fallback to client-side WebRTC IP detection
+    // If local backend is not available, we are in "Landing Page Mode" unless user overrides with Demo
+    setIsBackendConnected(false);
+    setApiBase('');
+
+    // 2. Still detect their local IP to show on the landing page for user awareness
     const webRtcIp = await detectWebRtcIp();
     if (webRtcIp) {
+      detectedIp = webRtcIp;
       const parts = webRtcIp.split('.');
-      const defaultRange = `${parts[0]}.${parts[1]}.${parts[2]}.1-254`;
-      setLocalInfo({
-        success: true,
-        local_ip: webRtcIp,
-        gateway_ip: `${parts[0]}.${parts[1]}.${parts[2]}.1`,
-        default_range: defaultRange,
-        isPlaceholder: false
-      });
-      setIpRange(defaultRange);
-      setBackendError("로컬 백엔드가 연결되지 않아 Vercel 서버를 통해 원격 스캔을 진행합니다. (원격 스캔 모드)");
-      setIsSimulation(false); // Let them run a real scan on Vercel!
-      setApiBase('');
-      return;
-    }
-
-    // 3. Fallback to client-info endpoint (Vercel public IP fallback)
-    try {
-      const response = await fetch('/api/client-info');
-      if (response.ok) {
-        const data = await response.json();
-        
-        let clientIp = '192.168.0.100'; // Default IP placeholder if none returned
-        let isPlaceholder = true;
-        
-        if (data.ip) {
-          clientIp = data.ip;
-          isPlaceholder = false;
+      gatewayIp = `${parts[0]}.${parts[1]}.${parts[2]}.1`;
+      defaultRange = `${parts[0]}.${parts[1]}.${parts[2]}.1-254`;
+    } else {
+      // 3. Fallback to client-info endpoint (Vercel public IP fallback)
+      try {
+        const response = await fetch('/api/client-info');
+        if (response.ok) {
+          const data = await response.json();
+          if (data.ip) {
+            detectedIp = data.ip;
+            const parts = detectedIp.split('.');
+            gatewayIp = `${parts[0]}.${parts[1]}.${parts[2]}.1`;
+            defaultRange = `${parts[0]}.${parts[1]}.${parts[2]}.1-254`;
+          }
         }
-        
-        const parts = clientIp.split('.');
-        const defaultRange = `${parts[0]}.${parts[1]}.${parts[2]}.1-254`;
-        
-        setLocalInfo({
-          success: true,
-          local_ip: clientIp,
-          gateway_ip: `${parts[0]}.${parts[1]}.${parts[2]}.1`,
-          default_range: defaultRange,
-          isPlaceholder: isPlaceholder
-        });
-        setIpRange(defaultRange);
-        setBackendError("로컬 백엔드가 연결되지 않아 Vercel 서버를 통해 원격 스캔을 진행합니다. (원격 스캔 모드)");
-        setIsSimulation(false); // Let them run a real scan on Vercel!
-        setApiBase('');
-        return;
+      } catch (err) {
+        console.warn("Failed to fetch client info from server:", err);
       }
-    } catch (err) {
-      console.warn("Failed to fetch client info from server:", err);
     }
 
-    // Final Fallback: default subnet
+    if (!detectedIp) {
+      detectedIp = '192.168.0.100';
+      gatewayIp = '192.168.0.1';
+      defaultRange = '192.168.0.1-254';
+    }
+
     setLocalInfo({
       success: true,
-      local_ip: '192.168.0.100',
-      gateway_ip: '192.168.0.1',
-      default_range: '192.168.0.1-254',
+      local_ip: detectedIp,
+      gateway_ip: gatewayIp,
+      default_range: defaultRange,
       isPlaceholder: true
     });
-    setIpRange('192.168.0.1-254');
-    setBackendError("로컬 백엔드가 연결되지 않아 시뮬레이션 모드로 전환되었습니다.");
-    setIsSimulation(true);
-    setApiBase('');
+    setIpRange(defaultRange);
+    setBackendError("로컬 에이전트(netbox.exe)가 실행되지 않았습니다.");
   };
+
 
   useEffect(() => {
     detectLocalRange();
@@ -877,6 +876,210 @@ const IpScanner = () => {
     }
     return ip;
   };
+
+  const isLocal = isBackendConnected || showDemo;
+
+  if (!isLocal) {
+    return (
+      <div className="ipscanner-container animate-fade-in" style={{ padding: '1rem', maxWidth: '1000px', margin: '0 auto' }}>
+        <div className="window-frame" style={{ border: '1px solid rgba(0, 191, 255, 0.25)', boxShadow: '0 8px 32px rgba(0, 191, 255, 0.15)', background: 'rgba(13, 14, 18, 0.95)', backdropFilter: 'blur(20px)' }}>
+          {/* Menu Bar style header */}
+          <div className="virtual-menu" style={{ justifyContent: 'space-between', padding: '0.6rem 1.2rem', backgroundColor: 'rgba(20, 22, 28, 0.9)' }}>
+            <span style={{ fontWeight: 'bold', color: 'var(--accent)', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.9rem' }}>
+              📡 NetBox IP 스캐너 & 네트워크 진단 도구
+            </span>
+            <span style={{ fontSize: '0.75rem', color: '#ffbd2e', backgroundColor: 'rgba(255, 189, 46, 0.1)', padding: '0.2rem 0.6rem', borderRadius: '12px', fontWeight: 'bold' }}>
+              보안 샌드박스 상태 (로컬 연결 필요)
+            </span>
+          </div>
+
+          <div style={{ padding: '2.5rem 2rem', display: 'flex', flexDirection: 'column', gap: '2.5rem' }}>
+            {/* Header section */}
+            <div style={{ textAlign: 'center' }}>
+              <h1 style={{ fontSize: '2.2rem', background: 'linear-gradient(135deg, var(--text-primary) 30%, var(--accent) 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', marginBottom: '0.75rem', fontWeight: '800', letterSpacing: '-0.5px' }}>
+                로컬 네트워크 진단 & IP 스캐너
+              </h1>
+              <p style={{ color: 'var(--text-secondary)', lineHeight: '1.6', maxWidth: '750px', margin: '0 auto', fontSize: '1rem' }}>
+                웹 브라우저의 보안 정책(Mixed Content 및 Private Network Access 차단)으로 인해, 외부 웹사이트에서는 사용자의 사설 네트워크 대역(LAN) 내의 기기를 직접 스캔하거나 MAC 주소를 수집할 수 없습니다. 
+                모든 분석 기능은 안전한 **로컬 환경**에서 직접 실행하거나 **로컬 에이전트**를 통해 정상 동작합니다.
+              </p>
+              {localInfo && localInfo.local_ip && (
+                <div style={{ display: 'inline-block', marginTop: '1rem', padding: '0.4rem 1rem', background: 'rgba(0, 191, 255, 0.08)', borderRadius: '20px', border: '1px solid rgba(0, 191, 255, 0.2)', fontSize: '0.85rem', color: 'var(--accent)', fontWeight: '600' }}>
+                  🔍 감지된 현재 기기 IP: <span style={{ fontFamily: 'monospace', fontSize: '0.95rem' }}>{localInfo.local_ip}</span>
+                </div>
+              )}
+            </div>
+
+            {/* Feature Cards Grid */}
+            <div>
+              <h2 style={{ fontSize: '1.2rem', color: 'var(--text-primary)', marginBottom: '1.25rem', fontWeight: '700', textAlign: 'center' }}>
+                🛠️ 제공하는 핵심 네트워크 진단 기능
+              </h2>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1.5rem' }}>
+                <div className="monitor-card status-healthy" style={{ margin: 0, padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.75rem', minHeight: 'auto', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '8px', transition: 'all 0.3s ease' }}>
+                  <div style={{ fontSize: '2rem' }}>🖥️</div>
+                  <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 'bold', color: 'var(--text-primary)' }}>IP 연결 현황 (GUI 뷰)</h3>
+                  <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-secondary)', lineHeight: '1.6' }}>
+                    15열의 반응형 그리드로 전체 254개 사설 대역 IP 주소 연결 상태(사용 중, 사용 가능)를 시각적 바둑판으로 매핑하여 한눈에 파악합니다.
+                  </p>
+                </div>
+
+                <div className="monitor-card status-healthy" style={{ margin: 0, padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.75rem', minHeight: 'auto', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '8px', transition: 'all 0.3s ease' }}>
+                  <div style={{ fontSize: '2rem' }}>🔍</div>
+                  <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 'bold', color: 'var(--text-primary)' }}>열린 포트 및 서비스 스캔</h3>
+                  <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-secondary)', lineHeight: '1.6' }}>
+                    각 장치에서 구동 중인 주요 서비스 포트(HTTP, HTTPS, SSH, FTP, SMB, RDP 등)를 고속 스캔하여 바로 접속 가능한 URL 링크를 자동 제공합니다.
+                  </p>
+                </div>
+
+                <div className="monitor-card status-healthy" style={{ margin: 0, padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.75rem', minHeight: 'auto', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '8px', transition: 'all 0.3s ease' }}>
+                  <div style={{ fontSize: '2rem' }}>🏷️</div>
+                  <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 'bold', color: 'var(--text-primary)' }}>기기 식별 & OUI 조회</h3>
+                  <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-secondary)', lineHeight: '1.6' }}>
+                    네트워크 단말의 MAC 주소를 추출하고 하드웨어 제조사 OUI 데이터베이스와 매핑해 기기의 브랜드(Samsung, Apple, HP, Switch 등)를 조회합니다.
+                  </p>
+                </div>
+
+                <div className="monitor-card status-healthy" style={{ margin: 0, padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.75rem', minHeight: 'auto', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '8px', transition: 'all 0.3s ease' }}>
+                  <div style={{ fontSize: '2rem' }}>🛡️</div>
+                  <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 'bold', color: 'var(--text-primary)' }}>보안 위협 & 장애 진단</h3>
+                  <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-secondary)', lineHeight: '1.6' }}>
+                    실시간 트래픽 패킷 분석, 동일 MAC 주소 중복 매핑(ARP 스푸핑 공격) 검출 및 케이블 이중 루핑(Looping) 장애 경보 시스템을 갖추고 있습니다.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Setup Options Section */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1.1fr 1fr', gap: '1.5rem', marginTop: '0.5rem' }}>
+              
+              {/* PC Option */}
+              <div style={{ padding: '1.5rem', backgroundColor: 'rgba(255,255,255,0.015)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '8px', display: 'flex', flexDirection: 'column', gap: '1rem', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.05)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <span style={{ fontSize: '1.3rem' }}>💻</span>
+                  <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 'bold', color: 'var(--text-primary)' }}>PC에서 로컬 실행하기 (Windows)</h3>
+                </div>
+                
+                <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', display: 'flex', flexDirection: 'column', gap: '0.7rem' }}>
+                  <div style={{ display: 'flex', gap: '0.5rem' }}>
+                    <span style={{ color: 'var(--accent)', fontWeight: 'bold' }}>1.</span>
+                    <span>아래 다운로드 버튼을 클릭하여 단일 무설치 포터블 패키지를 다운로드합니다.</span>
+                  </div>
+                  <div style={{ display: 'flex', gap: '0.5rem' }}>
+                    <span style={{ color: 'var(--accent)', fontWeight: 'bold' }}>2.</span>
+                    <span>별도 환경 설정 없이 <code>netbox.exe</code> 파일을 더블클릭하여 바로 실행합니다.</span>
+                  </div>
+                  <div style={{ display: 'flex', gap: '0.5rem' }}>
+                    <span style={{ color: 'var(--accent)', fontWeight: 'bold' }}>3.</span>
+                    <span>로컬 웹서버가 구동되며 브라우저 창(<code>http://127.0.0.1:5000</code>)이 자동으로 열립니다.</span>
+                  </div>
+                </div>
+
+                <a 
+                  href="/netbox.exe" 
+                  download 
+                  className="btn-scan"
+                  style={{ 
+                    textDecoration: 'none', 
+                    backgroundColor: 'var(--accent)', 
+                    color: '#000', 
+                    fontWeight: '800',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '0.5rem',
+                    padding: '0.8rem 1.2rem',
+                    marginTop: 'auto',
+                    border: 'none',
+                    borderRadius: '6px',
+                    textAlign: 'center',
+                    transition: 'all 0.2s ease',
+                    boxShadow: '0 4px 12px rgba(0, 191, 255, 0.25)'
+                  }}
+                  onMouseOver={(e) => e.currentTarget.style.filter = 'brightness(1.1)'}
+                  onMouseOut={(e) => e.currentTarget.style.filter = 'none'}
+                >
+                  📥 PC용 포터블 에이전트 다운로드 (.exe)
+                </a>
+              </div>
+
+              {/* Mobile Option */}
+              <div style={{ padding: '1.5rem', backgroundColor: 'rgba(255,255,255,0.015)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '8px', display: 'flex', flexDirection: 'column', gap: '1rem', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.05)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <span style={{ fontSize: '1.3rem' }}>📱</span>
+                  <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 'bold', color: 'var(--text-primary)' }}>모바일 웹앱으로 연결하기 (iOS / Android)</h3>
+                </div>
+
+                <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', display: 'flex', flexDirection: 'column', gap: '0.7rem' }}>
+                  <div style={{ display: 'flex', gap: '0.5rem' }}>
+                    <span style={{ color: 'var(--accent)', fontWeight: 'bold' }}>1.</span>
+                    <span>PC에서 <code>netbox.exe</code>를 실행하면 화면 우측 상단에 로컬 네트워크 IP가 표시됩니다.</span>
+                  </div>
+                  <div style={{ display: 'flex', gap: '0.5rem' }}>
+                    <span style={{ color: 'var(--accent)', fontWeight: 'bold' }}>2.</span>
+                    <span>스마트폰을 PC와 **동일한 와이파이(Wi-Fi)** 공유기 망에 연결합니다.</span>
+                  </div>
+                  <div style={{ display: 'flex', gap: '0.5rem' }}>
+                    <span style={{ color: 'var(--accent)', fontWeight: 'bold' }}>3.</span>
+                    <span>모바일 크롬(Chrome) 또는 사파리(Safari) 주소창에 <code>http://[PC_IP]:5000</code>를 직접 입력하여 접속합니다.</span>
+                  </div>
+                </div>
+
+                <div 
+                  style={{ 
+                    border: '1px dashed rgba(0, 191, 255, 0.25)', 
+                    borderRadius: '6px', 
+                    padding: '0.75rem', 
+                    fontSize: '0.78rem', 
+                    color: 'var(--accent)', 
+                    backgroundColor: 'rgba(0, 191, 255, 0.03)', 
+                    marginTop: 'auto',
+                    textAlign: 'center',
+                    lineHeight: '1.5'
+                  }}
+                >
+                  💡 <strong>독립형 웹앱 설치 기능 지원:</strong><br />
+                  접속 후 모바일 브라우저의 <strong>'홈 화면에 추가'</strong> 메뉴를 누르면 독립적인 모바일 웹앱(PWA)으로 스마트폰 바탕화면에 즉시 설치되어 주소창 없이 앱처럼 명료하게 구동됩니다.
+                </div>
+              </div>
+
+            </div>
+
+            {/* Demo Check Section */}
+            <div style={{ textAlign: 'center', borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: '1.5rem', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.75rem' }}>
+              <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                설치나 에이전트 구동 전에 인터페이스와 사용법을 미리 확인하고 싶으신가요?
+              </div>
+              <button
+                onClick={() => {
+                  setShowDemo(true);
+                  setIsSimulation(true);
+                  setBackendError("체험용 시뮬레이션 데모 모드입니다. 실제 네트워크 검사를 하려면 netbox.exe를 실행하십시오.");
+                }}
+                className="btn-scan"
+                style={{
+                  background: 'transparent',
+                  border: '1px solid var(--accent)',
+                  color: 'var(--accent)',
+                  fontSize: '0.9rem',
+                  padding: '0.5rem 1.5rem',
+                  fontWeight: '600',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease'
+                }}
+                onMouseOver={(e) => e.currentTarget.style.backgroundColor = 'rgba(0, 191, 255, 0.08)'}
+                onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+              >
+                ⚡ 체험용 시뮬레이션 데모 실행하기
+              </button>
+            </div>
+
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="ipscanner-container">
