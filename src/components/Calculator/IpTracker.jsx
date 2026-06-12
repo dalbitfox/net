@@ -264,7 +264,7 @@ const IpTracker = () => {
                 {/* 1. 도메인 기본 정보 카드 */}
                 <div className="card">
                     <h3 className="whois-section-title">도메인 기본 등록 정보</h3>
-                    <div className="grid grid-cols-1 gap-4" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))' }}>
+                    <div className="whois-details-grid">
                         <div className="whois-grid-item">
                             <span className="whois-grid-label">도메인 이름</span>
                             <span className="whois-grid-value text-blue monospace">{d.name || '-'}</span>
@@ -313,7 +313,7 @@ const IpTracker = () => {
                 {/* 2. 관리자 및 주소 정보 카드 */}
                 <div className="card">
                     <h3 className="whois-section-title">책임자 및 기관 주소 정보</h3>
-                    <div className="grid grid-cols-1 gap-4" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))' }}>
+                    <div className="whois-details-grid">
                         <div className="whois-grid-item">
                             <span className="whois-grid-label">관리자 이름 (국문/영문)</span>
                             <span className="whois-grid-value">
@@ -402,7 +402,7 @@ const IpTracker = () => {
         return (
             <div className={`card ${extraClass}`.trim()}>
                 <h3 className="whois-section-title">{title}</h3>
-                <div className="grid grid-cols-1 gap-4" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))' }}>
+                <div className="whois-details-grid">
                     <div className="whois-grid-item">
                         <span className="whois-grid-label">할당 IP 대역</span>
                         <span className="whois-grid-value text-blue monospace">{info.range || '-'}</span>
@@ -580,7 +580,7 @@ const IpTracker = () => {
                             {/* 글로벌 기본 정보 */}
                             <div className="card">
                                 <h3 className="whois-section-title">글로벌 등록 대역 정보</h3>
-                                <div className="grid grid-cols-1 gap-4" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))' }}>
+                                <div className="whois-details-grid">
                                     <div className="whois-grid-item">
                                         <span className="whois-grid-label">할당 IP 대역</span>
                                         <span className="whois-grid-value text-blue monospace">{rdap.netRange || whois.query}</span>
@@ -746,7 +746,7 @@ const IpTracker = () => {
                     {/* 기본 정보 */}
                     <div className="card">
                         <h3 className="whois-section-title">글로벌 등록 대역 정보</h3>
-                        <div className="grid grid-cols-1 gap-4" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))' }}>
+                        <div className="whois-details-grid">
                             <div className="whois-grid-item">
                                 <span className="whois-grid-label">할당 IP 대역</span>
                                 <span className="whois-grid-value text-blue monospace">{rdap.netRange || whois.query}</span>

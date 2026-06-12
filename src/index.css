@@ -395,6 +395,12 @@ header {
   border: 1px solid var(--border-color);
 }
 
+@media (max-width: 768px) {
+  .card {
+    padding: 1.25rem;
+  }
+}
+
 .network-class-selector {
   display: flex;
   gap: 1.5rem;
@@ -635,6 +641,11 @@ footer {
   display: grid;
   grid-template-columns: 1fr;
   gap: 1.5rem;
+  width: 100%;
+}
+
+.whois-card-grid > .card {
+  min-width: 0;
 }
 
 @media (min-width: 768px) {
@@ -643,6 +654,24 @@ footer {
   }
   .whois-col-span-2 {
     grid-column: span 2;
+  }
+}
+
+.whois-details-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 1rem;
+  width: 100%;
+}
+
+.whois-details-grid > * {
+  min-width: 0;
+}
+
+@media (max-width: 768px) {
+  .whois-details-grid {
+    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+    gap: 0.75rem;
   }
 }
 
