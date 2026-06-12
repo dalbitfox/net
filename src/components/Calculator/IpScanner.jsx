@@ -95,18 +95,6 @@ const API_BASE = (
   window.location.hostname.includes('github.io')
 ) ? 'http://127.0.0.1:5000' : '';
 
-const isPrivateIp = (ip) => {
-  if (!ip) return false;
-  const parts = ip.split('.').map(Number);
-  if (parts.length !== 4 || parts.some(isNaN)) return false;
-  return (
-    parts[0] === 10 ||
-    (parts[0] === 172 && parts[1] >= 16 && parts[1] <= 31) ||
-    (parts[0] === 192 && parts[1] === 168) ||
-    parts[0] === 127
-  );
-};
-
 const IpScanner = () => {
   const [ipRange, setIpRange] = useState('192.168.0.1-254');
   const [searchQuery, setSearchQuery] = useState('');
@@ -202,8 +190,11 @@ const IpScanner = () => {
       const response = await fetch(`${API_BASE}/api/scan_lan/local`);
       if (response.ok) {
         const data = await response.json();
-        if (data.success && isPrivateIp(data.local_ip)) {
-          setLocalInfo(data);
+        if (data.success) {
+          setLocalInfo({
+            ...data,
+            isPlaceholder: false
+          });
           setIpRange(data.default_range);
           setBackendError(null);
           setIsSimulation(false); // real backend works!
@@ -216,7 +207,7 @@ const IpScanner = () => {
 
     // 2. Fallback to client-side WebRTC IP detection
     const webRtcIp = await detectWebRtcIp();
-    if (webRtcIp && isPrivateIp(webRtcIp)) {
+    if (webRtcIp) {
       const parts = webRtcIp.split('.');
       const defaultRange = `${parts[0]}.${parts[1]}.${parts[2]}.1-254`;
       setLocalInfo({
@@ -227,8 +218,8 @@ const IpScanner = () => {
         isPlaceholder: false
       });
       setIpRange(defaultRange);
-      setBackendError("로컬 백엔드가 실행 중이지 않아 시뮬레이션 모드로 전환되었습니다.");
-      setIsSimulation(true);
+      setBackendError("로컬 백엔드가 연결되지 않아 Vercel 서버를 통해 원격 스캔을 진행합니다. (원격 스캔 모드)");
+      setIsSimulation(false); // Let them run a real scan on Vercel!
       return;
     }
 
@@ -238,15 +229,12 @@ const IpScanner = () => {
       if (response.ok) {
         const data = await response.json();
         
-        let clientIp = '192.168.0.100'; // Default private IP placeholder
-        let isRealPrivate = false;
+        let clientIp = '192.168.0.100'; // Default IP placeholder if none returned
+        let isPlaceholder = true;
         
-        if (data.privateIp && isPrivateIp(data.privateIp)) {
-          clientIp = data.privateIp;
-          isRealPrivate = true;
-        } else if (data.ip && isPrivateIp(data.ip)) {
+        if (data.ip) {
           clientIp = data.ip;
-          isRealPrivate = true;
+          isPlaceholder = false;
         }
         
         const parts = clientIp.split('.');
@@ -257,11 +245,11 @@ const IpScanner = () => {
           local_ip: clientIp,
           gateway_ip: `${parts[0]}.${parts[1]}.${parts[2]}.1`,
           default_range: defaultRange,
-          isPlaceholder: !isRealPrivate
+          isPlaceholder: isPlaceholder
         });
         setIpRange(defaultRange);
-        setBackendError("로컬 백엔드가 실행 중이지 않아 시뮬레이션 모드로 전환되었습니다.");
-        setIsSimulation(true);
+        setBackendError("로컬 백엔드가 연결되지 않아 Vercel 서버를 통해 원격 스캔을 진행합니다. (원격 스캔 모드)");
+        setIsSimulation(false); // Let them run a real scan on Vercel!
         return;
       }
     } catch (err) {
@@ -277,7 +265,7 @@ const IpScanner = () => {
       isPlaceholder: true
     });
     setIpRange('192.168.0.1-254');
-    setBackendError("로컬 백엔드가 실행 중이지 않아 시뮬레이션 모드로 전환되었습니다.");
+    setBackendError("로컬 백엔드가 연결되지 않아 시뮬레이션 모드로 전환되었습니다.");
     setIsSimulation(true);
   };
 
@@ -753,7 +741,7 @@ const IpScanner = () => {
   return (
     <div className="ipscanner-container">
       {/* Banner indicating simulation mode fallback */}
-      {isSimulation && (
+      {(isSimulation || backendError) && (
         <div className="simulation-banner">
           <div className="simulation-banner-title">
             ⚠️ <span>{backendError || "시뮬레이션 데모 모드가 켜져 있습니다 (로컬 백엔드 미동작)"}</span>
@@ -761,7 +749,7 @@ const IpScanner = () => {
           <button 
             className="btn-simulation-toggle"
             onClick={() => {
-              if (isSimulation) {
+              if (isSimulation || backendError) {
                 detectLocalRange();
               } else {
                 setIsSimulation(true);
@@ -769,7 +757,7 @@ const IpScanner = () => {
               }
             }}
           >
-            {isSimulation ? "로컬 백엔드 연결 시도" : "시뮬레이션 모드 전환"}
+            {(isSimulation || backendError) ? "로컬 백엔드 연결 시도" : "시뮬레이션 모드 전환"}
           </button>
         </div>
       )}
