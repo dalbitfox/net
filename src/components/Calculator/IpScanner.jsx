@@ -126,34 +126,11 @@ const IpScanner = () => {
   // Connection and auto-detect state
   const [localInfo, setLocalInfo] = useState(null);
   const [backendError, setBackendError] = useState(null);
-  const [customAgentIp, setCustomAgentIp] = useState(() => localStorage.getItem('custom_agent_ip') || '');
-  const [apiBase, setApiBase] = useState(() => {
-    const saved = localStorage.getItem('custom_agent_ip');
-    return saved ? `http://${saved}:5000` : API_BASE;
-  });
-  const [isBackendConnected, setIsBackendConnected] = useState(() => {
-    return !!localStorage.getItem('custom_agent_ip');
-  });
+  const [apiBase, setApiBase] = useState(API_BASE);
   const [showDemo, setShowDemo] = useState(false);
   const [showQrModal, setShowQrModal] = useState(false);
-  const [ipInput, setIpInput] = useState(customAgentIp);
-
-  const handleConnectAgent = (e) => {
-    e.preventDefault();
-    if (ipInput.trim()) {
-      localStorage.setItem('custom_agent_ip', ipInput.trim());
-      setCustomAgentIp(ipInput.trim());
-      setApiBase(`http://${ipInput.trim()}:5000`);
-      setIsBackendConnected(true);
-      window.location.reload();
-    } else {
-      localStorage.removeItem('custom_agent_ip');
-      setCustomAgentIp('');
-      setApiBase(API_BASE);
-      setIsBackendConnected(false);
-      window.location.reload();
-    }
-  };
+  const [manualIp, setManualIp] = useState(() => localStorage.getItem('manual_pc_ip') || '');
+  const [ipInput, setIpInput] = useState(manualIp);
 
   // Monitor & Traffic Stats State
   const [monitorData, setMonitorData] = useState(null);
@@ -257,10 +234,9 @@ const IpScanner = () => {
     let gatewayIp = null;
     let defaultRange = '192.168.0.1-254';
 
-    // 1. Try local or custom configured backend first
-    const activeApi = localStorage.getItem('custom_agent_ip') ? `http://${localStorage.getItem('custom_agent_ip')}:5000` : API_BASE;
+    // 1. Try local backend first
     try {
-      const response = await fetch(`${activeApi}/api/scan_lan/local`);
+      const response = await fetch(`${API_BASE}/api/scan_lan/local`);
       if (response.ok) {
         const data = await response.json();
         if (data.success) {
@@ -271,8 +247,7 @@ const IpScanner = () => {
           setIpRange(data.default_range);
           setBackendError(null);
           setIsSimulation(false);
-          setApiBase(activeApi);
-          setIsBackendConnected(true);
+          setApiBase(API_BASE);
           connected = true;
           return;
         }
@@ -281,12 +256,7 @@ const IpScanner = () => {
       console.warn("Target backend scanning API not available, trying WebRTC fallback...", err);
     }
 
-    // If local backend is not available, we are in "Landing Page Mode" unless user overrides with Demo
-    const hasCustom = !!localStorage.getItem('custom_agent_ip');
-    setIsBackendConnected(hasCustom); // Keep connection state true if we explicitly set it
-    if (!hasCustom) {
-      setApiBase('');
-    }
+    setApiBase('');
 
     // 2. Still detect their local IP to show on the landing page for user awareness
     const webRtcIp = await detectWebRtcIp();
@@ -327,14 +297,11 @@ const IpScanner = () => {
       isPlaceholder: true
     });
     setIpRange(defaultRange);
-    if (hasCustom) {
-      setBackendError(`수동설정 IP (${localStorage.getItem('custom_agent_ip')}) 연결에 실패했습니다. 원래대로 돌리려면 아래 입력창을 비우고 [연결 설정]을 클릭하세요.`);
+
+    if (window.location.protocol === 'https:' && API_BASE.startsWith('http://127.0.0.1')) {
+      setBackendError("🔒 브라우저 보안 통제(Mixed Content)로 인해 HTTPS 환경에서 로컬 에이전트(HTTP) 연결이 차단되었습니다. 로컬 주소인 'http://127.0.0.1:5000' 주소로 직접 브라우저에 접속하여 사용해주세요.");
     } else {
-      if (window.location.protocol === 'https:' && activeApi.startsWith('http://127.0.0.1')) {
-        setBackendError("🔒 브라우저 보안 통제(Mixed Content)로 인해 HTTPS 환경에서 로컬 에이전트(HTTP) 연결이 차단되었습니다. 로컬 주소인 'http://127.0.0.1:5000' 주소로 직접 브라우저에 접속하여 사용해주세요.");
-      } else {
-        setBackendError("로컬 에이전트(netbox.exe)가 실행되지 않았습니다. PC용 포터블 에이전트를 기동해 주세요.");
-      }
+      setBackendError("로컬 에이전트(netbox.exe)가 실행되지 않았습니다. PC용 포터블 에이전트를 기동해 주세요.");
     }
   };
 
@@ -915,8 +882,9 @@ const IpScanner = () => {
   };
 
   const isLocal = (localInfo && !backendError) || showDemo;
-  const localUrl = localInfo && !localInfo.isPlaceholder ? `http://${localInfo.local_ip}:${window.location.port || '5173'}` : null;
-  const qrCodeUrl = localUrl ? `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(localUrl)}` : null;
+  const qrIp = manualIp || (localInfo && localInfo.local_ip) || '127.0.0.1';
+  const localUrl = `http://${qrIp}:5000`;
+  const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(localUrl)}`;
 
   if (!isLocal) {
     return (
@@ -959,7 +927,7 @@ const IpScanner = () => {
               <div className="mobile-download-card" style={{ padding: '1.25rem', background: 'rgba(255,255,255,0.015)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '10px', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                   <span style={{ fontSize: '1.1rem' }}>📱</span>
-                  <h3 className="trendy-section-title">2. 모바일 설치 앱 (Android / iOS)</h3>
+                  <h3 className="trendy-section-title">2. 모바일 와이파이 연결용 QR (iOS 지원)</h3>
                 </div>
                 
                 {/* APK Download for Android */}
@@ -969,31 +937,26 @@ const IpScanner = () => {
                   </a>
                 </div>
 
-                {localUrl ? (
-                  <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', marginTop: '0.25rem', borderTop: '1px solid rgba(255,255,255,0.04)', paddingTop: '0.75rem', flexWrap: 'wrap' }}>
-                    <div style={{ padding: '6px', background: '#fff', borderRadius: '8px', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <img src={qrCodeUrl} alt="Mobile connection QR" style={{ width: '90px', height: '90px', display: 'block' }} />
-                    </div>
-                    <div className="trendy-qr-desc">
-                      <div style={{ color: 'var(--accent)', fontWeight: '700', marginBottom: '2px' }}>✓ 모바일 와이파이 연결용 QR</div>
-                      카메라로 스캔해 접속한 뒤 <strong>'홈 화면에 추가(앱 설치)'</strong>를 누르면 안드로이드 및 아이폰 바탕화면에 즉시 설치되어 스캔이 정상 작동합니다.
-                    </div>
+                <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', marginTop: '0.25rem', borderTop: '1px solid rgba(255,255,255,0.04)', paddingTop: '0.75rem', flexWrap: 'wrap' }}>
+                  <div style={{ padding: '6px', background: '#fff', borderRadius: '8px', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <img src={qrCodeUrl} alt="Mobile connection QR" style={{ width: '90px', height: '90px', display: 'block' }} />
                   </div>
-                ) : (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginTop: '0.25rem', borderTop: '1px solid rgba(255,255,255,0.04)', paddingTop: '0.75rem' }}>
-                    <p className="trendy-qr-desc">
-                      <strong>아이폰(iOS) 및 PWA 설치:</strong> PC 에이전트를 먼저 기동하거나 수동 IP를 연결하면 이곳에 Wi-Fi 연동용 QR 코드가 활성화됩니다.
-                    </p>
+                  <div className="trendy-qr-desc">
+                    <div style={{ color: 'var(--accent)', fontWeight: '700', marginBottom: '2px' }}>✓ 사파리 브라우저 자동 연동</div>
+                    아이폰/안드로이드 카메라로 QR 코드를 스캔하여 접속하십시오. (PC와 모바일 기기가 <strong>동일한 Wi-Fi</strong>망에 연결되어 있어야 합니다.)
                   </div>
-                )}
+                </div>
               </div>
 
-              {/* Action 3: Remote IP manual connection */}
-              <form onSubmit={handleConnectAgent} className="manual-connect-card" style={{ padding: '1rem 1.25rem', background: 'rgba(0,191,255,0.02)', border: '1px dashed rgba(0, 191, 255, 0.15)', borderRadius: '10px', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+              {/* Action 3: PC IP Manual Setting for QR Code */}
+              <div className="manual-connect-card" style={{ padding: '1rem 1.25rem', background: 'rgba(0,191,255,0.02)', border: '1px dashed rgba(0, 191, 255, 0.15)', borderRadius: '10px', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                   <span style={{ fontSize: '1rem' }}>🔗</span>
-                  <h3 className="trendy-input-title">수동 에이전트 IP 연결 (모바일 / 타기기 전용)</h3>
+                  <h3 className="trendy-input-title">수동 PC IP 연결 설정 (QR 코드 수동 갱신)</h3>
                 </div>
+                <p className="trendy-card-desc" style={{ fontSize: '0.85rem' }}>
+                  기본 인식된 IP와 다를 경우, 아래 입력창에 PC 에이전트가 실행 중인 PC의 사설 IP 주소를 수동 입력하고 [연결 설정]을 눌러 모바일 접속용 QR 코드를 갱신해 주십시오.
+                </p>
                 <div style={{ display: 'flex', gap: '0.5rem' }}>
                   <input
                     type="text"
@@ -1011,16 +974,29 @@ const IpScanner = () => {
                       fontFamily: 'monospace'
                     }}
                   />
-                  <button type="submit" className="trendy-btn-secondary" style={{ padding: '0.5rem 1.2rem', fontSize: '0.85rem' }}>
+                  <button 
+                    type="button" 
+                    onClick={() => {
+                      if (ipInput.trim()) {
+                        localStorage.setItem('manual_pc_ip', ipInput.trim());
+                        setManualIp(ipInput.trim());
+                      } else {
+                        localStorage.removeItem('manual_pc_ip');
+                        setManualIp('');
+                      }
+                    }} 
+                    className="trendy-btn-secondary" 
+                    style={{ padding: '0.5rem 1.2rem', fontSize: '0.85rem' }}
+                  >
                     연결 설정
                   </button>
                 </div>
-                {customAgentIp && (
+                {manualIp && (
                   <div style={{ fontSize: '0.82rem', color: 'var(--accent)' }}>
-                    현재 설정된 수동 IP: <strong>{customAgentIp}</strong>
+                    설정된 PC IP: <strong>{manualIp}</strong>
                   </div>
                 )}
-              </form>
+              </div>
             </div>
 
             {/* Right Column: High-fidelity Live Dashboard Preview */}
