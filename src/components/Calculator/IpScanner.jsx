@@ -90,7 +90,22 @@ const MOCK_DEVICES = [
   { ip: '192.168.0.110', mac: '00:1F:D0:2E:3C:C9', hostname: 'PATRICK', manufacturer: 'GIGA-BYTE TECHNOLOGY CO., LTD.', status: 'alive', ports: [{ port: 80, service: 'HTTP' }, { port: 443, service: 'HTTPS' }, { port: 21, service: 'FTP' }, { port: 445, service: 'SMB (Shared Folders)' }, { port: 3389, service: 'RDP (Remote Desktop)' }, { port: 4899, service: 'Radmin' }] }
 ];
 
-const API_BASE = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') ? '' : 'http://127.0.0.1:5000';
+const API_BASE = (
+  window.location.protocol === 'file:' || 
+  window.location.hostname.includes('github.io')
+) ? 'http://127.0.0.1:5000' : '';
+
+const isPrivateIp = (ip) => {
+  if (!ip) return false;
+  const parts = ip.split('.').map(Number);
+  if (parts.length !== 4 || parts.some(isNaN)) return false;
+  return (
+    parts[0] === 10 ||
+    (parts[0] === 172 && parts[1] >= 16 && parts[1] <= 31) ||
+    (parts[0] === 192 && parts[1] === 168) ||
+    parts[0] === 127
+  );
+};
 
 const IpScanner = () => {
   const [ipRange, setIpRange] = useState('192.168.0.1-254');
@@ -187,7 +202,7 @@ const IpScanner = () => {
       const response = await fetch(`${API_BASE}/api/scan_lan/local`);
       if (response.ok) {
         const data = await response.json();
-        if (data.success) {
+        if (data.success && isPrivateIp(data.local_ip)) {
           setLocalInfo(data);
           setIpRange(data.default_range);
           setBackendError(null);
@@ -201,14 +216,15 @@ const IpScanner = () => {
 
     // 2. Fallback to client-side WebRTC IP detection
     const webRtcIp = await detectWebRtcIp();
-    if (webRtcIp) {
+    if (webRtcIp && isPrivateIp(webRtcIp)) {
       const parts = webRtcIp.split('.');
       const defaultRange = `${parts[0]}.${parts[1]}.${parts[2]}.1-254`;
       setLocalInfo({
         success: true,
         local_ip: webRtcIp,
         gateway_ip: `${parts[0]}.${parts[1]}.${parts[2]}.1`,
-        default_range: defaultRange
+        default_range: defaultRange,
+        isPlaceholder: false
       });
       setIpRange(defaultRange);
       setBackendError("로컬 백엔드가 실행 중이지 않아 시뮬레이션 모드로 전환되었습니다.");
@@ -221,31 +237,45 @@ const IpScanner = () => {
       const response = await fetch('/api/client-info');
       if (response.ok) {
         const data = await response.json();
-        if (data.ip) {
-          const clientIp = data.ip;
-          const parts = clientIp.split('.');
-          let defaultRange = '192.168.0.1-254';
-          if (parts.length === 4) {
-            defaultRange = `${parts[0]}.${parts[1]}.${parts[2]}.1-254`;
-          }
-          setLocalInfo({
-            success: true,
-            local_ip: clientIp,
-            gateway_ip: parts.length === 4 ? `${parts[0]}.${parts[1]}.${parts[2]}.1` : 'Unknown',
-            default_range: defaultRange
-          });
-          setIpRange(defaultRange);
-          setBackendError("로컬 백엔드가 실행 중이지 않아 시뮬레이션 모드로 전환되었습니다.");
-          setIsSimulation(true);
-          return;
+        
+        let clientIp = '192.168.0.100'; // Default private IP placeholder
+        let isRealPrivate = false;
+        
+        if (data.privateIp && isPrivateIp(data.privateIp)) {
+          clientIp = data.privateIp;
+          isRealPrivate = true;
+        } else if (data.ip && isPrivateIp(data.ip)) {
+          clientIp = data.ip;
+          isRealPrivate = true;
         }
+        
+        const parts = clientIp.split('.');
+        const defaultRange = `${parts[0]}.${parts[1]}.${parts[2]}.1-254`;
+        
+        setLocalInfo({
+          success: true,
+          local_ip: clientIp,
+          gateway_ip: `${parts[0]}.${parts[1]}.${parts[2]}.1`,
+          default_range: defaultRange,
+          isPlaceholder: !isRealPrivate
+        });
+        setIpRange(defaultRange);
+        setBackendError("로컬 백엔드가 실행 중이지 않아 시뮬레이션 모드로 전환되었습니다.");
+        setIsSimulation(true);
+        return;
       }
     } catch (err) {
       console.warn("Failed to fetch client info from server:", err);
     }
 
     // Final Fallback: default subnet
-    setLocalInfo(null);
+    setLocalInfo({
+      success: true,
+      local_ip: '192.168.0.100',
+      gateway_ip: '192.168.0.1',
+      default_range: '192.168.0.1-254',
+      isPlaceholder: true
+    });
     setIpRange('192.168.0.1-254');
     setBackendError("로컬 백엔드가 실행 중이지 않아 시뮬레이션 모드로 전환되었습니다.");
     setIsSimulation(true);
@@ -782,7 +812,7 @@ const IpScanner = () => {
             />
           </div>
           <span className="range-tooltip">
-            {localInfo ? `(내 IP: ${localInfo.local_ip})` : "IP를 입력해주세요"}
+            {localInfo ? `(내 IP: ${localInfo.local_ip}${localInfo.isPlaceholder ? ' (가상)' : ''})` : "IP를 입력해주세요"}
           </span>
         </div>
 
