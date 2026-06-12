@@ -327,7 +327,15 @@ const IpScanner = () => {
       isPlaceholder: true
     });
     setIpRange(defaultRange);
-    setBackendError("로컬 에이전트(netbox.exe)가 실행되지 않았습니다.");
+    if (hasCustom) {
+      setBackendError(`수동설정 IP (${localStorage.getItem('custom_agent_ip')}) 연결에 실패했습니다. 원래대로 돌리려면 아래 입력창을 비우고 [연결 설정]을 클릭하세요.`);
+    } else {
+      if (window.location.protocol === 'https:' && activeApi.startsWith('http://127.0.0.1')) {
+        setBackendError("🔒 브라우저 보안 통제(Mixed Content)로 인해 HTTPS 환경에서 로컬 에이전트(HTTP) 연결이 차단되었습니다. 로컬 주소인 'http://127.0.0.1:5000' 주소로 직접 브라우저에 접속하여 사용해주세요.");
+      } else {
+        setBackendError("로컬 에이전트(netbox.exe)가 실행되지 않았습니다. PC용 포터블 에이전트를 기동해 주세요.");
+      }
+    }
   };
 
 
