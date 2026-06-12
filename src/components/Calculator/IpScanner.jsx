@@ -135,6 +135,7 @@ const IpScanner = () => {
     return !!localStorage.getItem('custom_agent_ip');
   });
   const [showDemo, setShowDemo] = useState(false);
+  const [showQrModal, setShowQrModal] = useState(false);
   const [ipInput, setIpInput] = useState(customAgentIp);
 
   const handleConnectAgent = (e) => {
@@ -1166,6 +1167,15 @@ const IpScanner = () => {
           <span className="range-tooltip">
             {localInfo ? `(내 IP: ${localInfo.local_ip}${localInfo.isPlaceholder ? ' (가상)' : ''})` : "IP를 입력해주세요"}
           </span>
+          <button 
+            type="button"
+            className="btn-icon-util" 
+            onClick={() => setShowQrModal(true)} 
+            style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.82rem', padding: '0.45rem 0.8rem', marginLeft: '0.5rem', whiteSpace: 'nowrap' }}
+            title="모바일 기기 연결용 QR 코드 표시"
+          >
+            📱 모바일 연결
+          </button>
         </div>
 
         {/* Tabs for Results vs Active Devices vs Favorites */}
@@ -2007,6 +2017,37 @@ const IpScanner = () => {
           </div>
         </div>
       </div>
+
+      {showQrModal && (
+        <div className="qr-modal-overlay" onClick={() => setShowQrModal(false)}>
+          <div className="qr-modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="qr-modal-header">
+              <h3>📱 모바일 기기 연결용 QR 코드</h3>
+              <button className="qr-modal-close" onClick={() => setShowQrModal(false)}>&times;</button>
+            </div>
+            <div className="qr-modal-body" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+              {qrCodeUrl ? (
+                <>
+                  <div style={{ padding: '8px', background: '#fff', borderRadius: '10px', display: 'inline-block', margin: '0.5rem 0' }}>
+                    <img src={qrCodeUrl} alt="Mobile connection QR" style={{ width: '130px', height: '130px', display: 'block' }} />
+                  </div>
+                  <p style={{ fontSize: '0.88rem', color: 'var(--text-primary)', lineHeight: '1.5', margin: '0.5rem 0 1rem 0' }}>
+                    스마트폰 카메라로 이 QR 코드를 스캔하세요.<br />
+                    접속 후 브라우저 메뉴에서 <strong>'홈 화면에 추가(앱 설치)'</strong>를 누르면 아이폰/안드로이드 바탕화면에 앱이 즉시 생성됩니다.
+                  </p>
+                  <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', background: 'rgba(255,255,255,0.03)', padding: '0.6rem 0.8rem', borderRadius: '4px', fontFamily: 'monospace', wordBreak: 'break-all', width: '100%', boxSizing: 'border-box' }}>
+                    접속 주소: {localUrl}
+                  </div>
+                </>
+              ) : (
+                <div style={{ padding: '2rem 1rem', color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
+                  ⚠️ 로컬 에이전트와 연동되어 있지 않아 QR 코드를 생성할 수 없습니다. 로컬 연결을 완료해 주세요.
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

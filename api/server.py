@@ -29,6 +29,12 @@ if not os.path.exists(static_dir):
 app = Flask(__name__, static_folder=static_dir, static_url_path='')
 CORS(app)
 
+@app.after_request
+def add_cors_headers(response):
+    # Support Chrome's Private Network Access (PNA) preflight requirements
+    response.headers['Access-Control-Allow-Private-Network'] = 'true'
+    return response
+
 # 일반적인 포트와 서비스 매핑
 COMMON_PORTS = {
     # TCP 포트
