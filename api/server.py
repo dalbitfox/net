@@ -1318,21 +1318,120 @@ def get_primary_local_ip():
         
     return '127.0.0.1'
 
+def get_local_network_info():
+    import platform
+    import subprocess
+    import re
+    import socket
+    
+    ip = None
+    mask = "255.255.255.0"
+    gateway = None
+    
+    system_name = platform.system().lower()
+    
+    try:
+        if 'windows' in system_name:
+            process = subprocess.run(
+                ['ipconfig'],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+                timeout=3,
+                shell=True
+            )
+            if process.returncode == 0:
+                stdout = process.stdout
+                sections = re.split(r'\n(?=[^\s])', stdout)
+                for section in sections:
+                    gw_match = re.search(r'(기본 게이트웨이|Default Gateway)(?:\s|\.)*:\s*(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})', section)
+                    if gw_match:
+                        gw_candidate = gw_match.group(2)
+                        if gw_candidate != '0.0.0.0':
+                            gateway = gw_candidate
+                            
+                            ip_match = re.search(r'(IPv4 Address|IPv4 주소)(?:\s|\.)*:\s*(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})', section)
+                            if ip_match:
+                                ip = ip_match.group(2)
+                                
+                            mask_match = re.search(r'(서브넷 마스크|Subnet Mask)(?:\s|\.)*:\s*(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})', section)
+                            if mask_match:
+                                mask = mask_match.group(2)
+                                
+                            if ip and gateway:
+                                break
+        else:
+            try:
+                res = subprocess.run(['ip', 'route', 'show'], stdout=subprocess.PIPE, text=True, timeout=2)
+                if res.returncode == 0:
+                    m = re.search(r'default\s+via\s+(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})', res.stdout)
+                    if m:
+                        gateway = m.group(1)
+            except Exception:
+                pass
+                
+            try:
+                res = subprocess.run(['ip', 'addr', 'show'], stdout=subprocess.PIPE, text=True, timeout=2)
+                if res.returncode == 0:
+                    inet_lines = re.findall(r'inet\s+(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})/(\d+)', res.stdout)
+                    for ip_addr, cidr in inet_lines:
+                        if not ip_addr.startswith('127.'):
+                            ip = ip_addr
+                            val = (0xffffffff << (32 - int(cidr))) & 0xffffffff
+                            mask = f"{(val >> 24) & 0xff}.{(val >> 16) & 0xff}.{(val >> 8) & 0xff}.{val & 0xff}"
+                            break
+            except Exception:
+                pass
+    except Exception:
+        pass
+        
+    if not ip or not gateway:
+        fallback_ip = None
+        fallback_gw = get_default_gateway()
+        try:
+            s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            s.settimeout(0.5)
+            if fallback_gw:
+                s.connect((fallback_gw, 80))
+            else:
+                s.connect(('8.8.8.8', 80))
+            fallback_ip = s.getsockname()[0]
+            s.close()
+        except Exception:
+            pass
+            
+        ip = ip or fallback_ip or '127.0.0.1'
+        gateway = gateway or fallback_gw or 'Unknown'
+        
+    return ip, mask, gateway
+
+def calculate_subnet_range(ip_str, mask_str):
+    try:
+        network = ipaddress.ip_network(f"{ip_str}/{mask_str}", strict=False)
+        hosts = list(network.hosts())
+        if hosts:
+            start_ip = str(hosts[0])
+            end_ip = str(hosts[-1])
+            if len(hosts) > 254:
+                parts = ip_str.split('.')
+                return f"{parts[0]}.{parts[1]}.{parts[2]}.1-254"
+            else:
+                return f"{start_ip}-{end_ip.split('.')[-1]}"
+    except Exception:
+        pass
+    parts = ip_str.split('.')
+    return f"{parts[0]}.{parts[1]}.{parts[2]}.1-254"
+
 @app.route('/api/scan_lan/local', methods=['GET'])
 def get_scan_lan_local():
-    local_ip = get_primary_local_ip()
-    gateway_ip = get_default_gateway()
+    local_ip, subnet_mask, gateway_ip = get_local_network_info()
+    ip_range = calculate_subnet_range(local_ip, subnet_mask)
          
-    ip_range = '192.168.0.1-254'
-    if local_ip != '127.0.0.1':
-        parts = local_ip.split('.')
-        if len(parts) == 4:
-            ip_range = f"{parts[0]}.{parts[1]}.{parts[2]}.1-254"
-            
     return jsonify({
         'success': True,
         'local_ip': local_ip,
         'gateway_ip': gateway_ip or 'Unknown',
+        'subnet_mask': subnet_mask,
         'default_range': ip_range
     })
 

@@ -90,10 +90,7 @@ const MOCK_DEVICES = [
   { ip: '192.168.0.110', mac: '00:1F:D0:2E:3C:C9', hostname: 'PATRICK', manufacturer: 'GIGA-BYTE TECHNOLOGY CO., LTD.', status: 'alive', ports: [{ port: 80, service: 'HTTP' }, { port: 443, service: 'HTTPS' }, { port: 21, service: 'FTP' }, { port: 445, service: 'SMB (Shared Folders)' }, { port: 3389, service: 'RDP (Remote Desktop)' }, { port: 4899, service: 'Radmin' }] }
 ];
 
-const API_BASE = (
-  window.location.protocol === 'file:' || 
-  window.location.hostname.includes('github.io')
-) ? 'http://127.0.0.1:5000' : '';
+const API_BASE = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') ? '' : 'http://127.0.0.1:5000';
 
 const IpScanner = () => {
   const [ipRange, setIpRange] = useState('192.168.0.1-254');
