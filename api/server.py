@@ -4,7 +4,7 @@ Port Scanner Web Application Backend (Vercel Compatible)
 Stateless Flask backend for TCP/UDP port scanning.
 """
 
-from flask import Flask, request, jsonify, Response
+from flask import Flask, request, jsonify, Response, send_from_directory
 from flask_cors import CORS
 import socket
 import ipaddress
@@ -14,9 +14,19 @@ import requests
 import re
 import base64
 import json
+import sys
 
+# Determine static folder path (supports PyInstaller packaging)
+if getattr(sys, 'frozen', False) and hasattr(sys, '_MEIPASS'):
+    base_dir = sys._MEIPASS
+else:
+    base_dir = os.path.dirname(os.path.abspath(__file__))
 
-app = Flask(__name__)
+static_dir = os.path.join(base_dir, 'dist')
+if not os.path.exists(static_dir):
+    static_dir = os.path.join(os.path.dirname(base_dir), 'dist')
+
+app = Flask(__name__, static_folder=static_dir, static_url_path='')
 CORS(app)
 
 # 일반적인 포트와 서비스 매핑
@@ -1815,7 +1825,23 @@ def get_network_monitor():
         }
     })
 
+# catch-all route to serve the built React frontend
+@app.route('/', defaults={'path': ''})
+@app.route('/<path:path>')
+def serve_frontend(path):
+    if path != "" and os.path.exists(os.path.join(app.static_folder, path)):
+        return send_from_directory(app.static_folder, path)
+    return send_from_directory(app.static_folder, 'index.html')
+
 # Vercel이 이 app 객체를 사용함
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    import webbrowser
+    from threading import Timer
+    
+    def open_browser():
+        webbrowser.open('http://127.0.0.1:5000')
+        
+    # Start timer to open browser once Flask is up
+    Timer(1.5, open_browser).start()
+    app.run(host='127.0.0.1', port=5000, debug=False)
 

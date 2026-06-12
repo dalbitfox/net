@@ -464,9 +464,15 @@ const IpScanner = () => {
     setDevices([]);
     setExpandedDevices({});
 
+    const isLocalBackendAvailable = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || apiBase !== '');
+
     if (isSimulation) {
       runSimulationScan();
+    } else if (!isLocalBackendAvailable) {
+      // Remote Vercel scan without local agent: run the direct browser scan!
+      runBrowserDirectScan();
     } else {
+      // Running locally or connected to local agent: run the real ARP scan!
       runRealScan();
     }
   };
@@ -559,6 +565,106 @@ const IpScanner = () => {
     } catch {
       return [rangeStr];
     }
+  };
+
+  // Pure browser-side Direct LAN scanning (No-installation fallback for mobile/web)
+  const runBrowserDirectScan = async () => {
+    const rangeParts = parseIpRangeHelper(ipRange);
+    const totalIps = rangeParts.length;
+    let completedCount = 0;
+    
+    // Set all to pending
+    const initialDevices = rangeParts.map(ip => ({
+      ip,
+      mac: '-',
+      hostname: 'N/A',
+      manufacturer: '-',
+      status: 'pending',
+      ports: []
+    }));
+    setDevices(initialDevices);
+    setProgress(0);
+
+    // Scan in batches to avoid overwhelming browser socket pools
+    const batchSize = 15;
+    
+    const probeIp = async (ip) => {
+      // Common web ports to check for TCP handshake response
+      const portsToTry = [80, 443, 8080];
+      let isAlive = false;
+      let openPorts = [];
+
+      for (const port of portsToTry) {
+        if (!isScanningRef.current || isPausedRef.current) break;
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 800); // 800ms threshold for speed
+
+        const startTime = performance.now();
+        try {
+          // Send request with no-cors to avoid CORS preflight block
+          await fetch(`http://${ip}:${port}`, { 
+            mode: 'no-cors', 
+            signal: controller.signal,
+            credentials: 'omit'
+          });
+          isAlive = true;
+          openPorts.push({ port, service: port === 443 ? 'HTTPS' : port === 80 ? 'HTTP' : 'HTTP-Alt' });
+          clearTimeout(timeoutId);
+          break; 
+        } catch (err) {
+          clearTimeout(timeoutId);
+          const duration = performance.now() - startTime;
+          // Key detection logic:
+          // If the host is dead, it will TIME OUT (takes >= 750ms).
+          // If the host is alive, the TCP connection is refused or returns CORS error IMMEDIATELY (typically < 300ms).
+          if (err.name !== 'AbortError' && duration < 500) {
+            isAlive = true;
+            openPorts.push({ port, service: port === 443 ? 'HTTPS' : port === 80 ? 'HTTP' : 'HTTP-Alt' });
+            break;
+          }
+        }
+      }
+
+      completedCount++;
+      const progressPct = Math.min(Math.round((completedCount / totalIps) * 100), 100);
+      setProgress(progressPct);
+
+      const deviceResult = isAlive ? {
+        ip,
+        mac: '-', 
+        hostname: ip === localInfo?.local_ip ? '내 스마트폰/PC' : '네트워크 장치',
+        manufacturer: '-',
+        status: 'alive',
+        ports: openPorts
+      } : {
+        ip,
+        mac: '-',
+        hostname: 'N/A',
+        manufacturer: '-',
+        status: 'dead',
+        ports: []
+      };
+
+      setDevices(prev => {
+        const idx = prev.findIndex(d => d.ip === ip);
+        if (idx !== -1) {
+          const updated = [...prev];
+          updated[idx] = deviceResult;
+          return updated;
+        }
+        return prev;
+      });
+    };
+
+    // Run batch execution sequentially
+    for (let i = 0; i < totalIps; i += batchSize) {
+      if (!isScanningRef.current) break;
+      const batch = rangeParts.slice(i, i + batchSize);
+      await Promise.all(batch.map(ip => probeIp(ip)));
+    }
+
+    setIsScanning(false);
+    setProgress(100);
   };
 
   // Real backend scan execution
@@ -780,19 +886,39 @@ const IpScanner = () => {
           <div className="simulation-banner-title">
             ⚠️ <span>{backendError || "시뮬레이션 데모 모드가 켜져 있습니다 (로컬 백엔드 미동작)"}</span>
           </div>
-          <button 
-            className="btn-simulation-toggle"
-            onClick={() => {
-              if (isSimulation || backendError) {
-                detectLocalRange();
-              } else {
-                setIsSimulation(true);
-                setBackendError("시뮬레이션 데모 모드가 활성화되었습니다.");
-              }
-            }}
-          >
-            {(isSimulation || backendError) ? "로컬 백엔드 연결 시도" : "시뮬레이션 모드 전환"}
-          </button>
+          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
+            {!(window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') && (
+              <a 
+                href="/netbox.exe" 
+                download 
+                className="btn-simulation-toggle"
+                style={{ 
+                  textDecoration: 'none', 
+                  backgroundColor: 'var(--accent)', 
+                  color: '#000', 
+                  fontWeight: 'bold',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px'
+                }}
+              >
+                📥 PC용 포터블 에이전트 다운로드
+              </a>
+            )}
+            <button 
+              className="btn-simulation-toggle"
+              onClick={() => {
+                if (isSimulation || backendError) {
+                  detectLocalRange();
+                } else {
+                  setIsSimulation(true);
+                  setBackendError("시뮬레이션 데모 모드가 활성화되었습니다.");
+                }
+              }}
+            >
+              {(isSimulation || backendError) ? "로컬 백엔드 연결 시도" : "시뮬레이션 모드 전환"}
+            </button>
+          </div>
         </div>
       )}
 
@@ -939,6 +1065,11 @@ const IpScanner = () => {
               {searchQuery && (
                 <span className="summary-item">
                   검색 필터링: <strong>{filteredResults.length} 개</strong>
+                </span>
+              )}
+              {!(window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || apiBase !== '') && (
+                <span className="summary-item" style={{ marginLeft: 'auto', color: '#ffbd2e', fontSize: '0.8rem', fontWeight: 'bold' }}>
+                  ℹ️ 브라우저 직접 스캔 중 (보안 정책상 MAC 주소 조회 불가)
                 </span>
               )}
             </div>
