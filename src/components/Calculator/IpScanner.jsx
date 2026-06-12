@@ -929,12 +929,12 @@ const IpScanner = () => {
             </div>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1.1fr 0.9fr', gap: '2.5rem' }}>
+          <div className="trendy-landing-grid">
             
             {/* Left Column: Connection & Installation Center */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
               <div>
-                <h1 style={{ fontSize: '1.75rem', fontWeight: '800', color: 'var(--text-primary)', margin: '0 0 0.5rem 0', letterSpacing: '-0.5px' }}>
+                <h1 className="trendy-title" style={{ color: 'var(--text-primary)', margin: '0 0 0.5rem 0', letterSpacing: '-0.5px' }}>
                   로컬 네트워크 진단 & 스캐너
                 </h1>
                 <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', lineHeight: '1.5', margin: 0 }}>
@@ -956,7 +956,6 @@ const IpScanner = () => {
                 </a>
               </div>
 
-              {/* Action 2: Mobile Install (PWA) */}
               {/* Action 2: Mobile Install (PWA & APK) */}
               <div style={{ padding: '1.25rem', background: 'rgba(255,255,255,0.015)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '10px', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
@@ -972,7 +971,7 @@ const IpScanner = () => {
                 </div>
 
                 {localUrl ? (
-                  <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', marginTop: '0.25rem', borderTop: '1px solid rgba(255,255,255,0.04)', paddingTop: '0.75rem' }}>
+                  <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', marginTop: '0.25rem', borderTop: '1px solid rgba(255,255,255,0.04)', paddingTop: '0.75rem', flexWrap: 'wrap' }}>
                     <div style={{ padding: '6px', background: '#fff', borderRadius: '8px', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                       <img src={qrCodeUrl} alt="Mobile connection QR" style={{ width: '90px', height: '90px', display: 'block' }} />
                     </div>

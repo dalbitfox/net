@@ -2286,3 +2286,155 @@
   100% { transform: scale(0.9); opacity: 0.6; }
 }
 
+/* Responsive Layout Classes */
+.trendy-title {
+  font-size: 2rem;
+  word-break: keep-all;
+  overflow-wrap: break-word;
+  margin: 0;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+  line-height: 1.25;
+}
+
+.trendy-landing-grid {
+  display: grid;
+  grid-template-columns: 1.1fr 0.9fr;
+  gap: 2.5rem;
+}
+
+/* Media Queries for Mobile & Tablet Viewports */
+@media (max-width: 800px) {
+  .trendy-landing-grid {
+    grid-template-columns: 1fr !important;
+    gap: 1.5rem !important;
+  }
+  
+  .trendy-title {
+    font-size: 1.5rem !important;
+  }
+  
+  .trendy-glass-card {
+    padding: 1.25rem !important;
+  }
+  
+  .ip-gui-grid {
+    grid-template-columns: repeat(10, 1fr) !important;
+    gap: 4px !important;
+  }
+
+  .window-toolbar {
+    flex-direction: column;
+    align-items: stretch !important;
+    gap: 0.75rem !important;
+  }
+
+  .toolbar-actions {
+    border-right: none !important;
+    padding-right: 0 !important;
+    justify-content: space-between;
+  }
+
+  .range-input-container {
+    width: 100%;
+  }
+
+  .range-input-container input.ip-range-field {
+    flex-grow: 1;
+    width: auto !important;
+  }
+
+  .range-tooltip {
+    margin-left: 0 !important;
+    text-align: left;
+    margin-top: 0.25rem;
+  }
+
+  .toolbar-search-container {
+    width: 100% !important;
+  }
+  
+  .results-table-container {
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .win-table {
+    min-width: 600px; /* Ensure table remains readable and scrollable */
+  }
+
+  /* Window tabs & view toggle responsive stack */
+  .window-tabs-container {
+    flex-direction: column;
+    align-items: stretch !important;
+  }
+  
+  .window-tabs {
+    width: 100%;
+    justify-content: space-around;
+    padding-left: 0 !important;
+  }
+  
+  .win-tab-btn {
+    flex: 1;
+    text-align: center;
+    padding: 0.5rem 0.25rem !important;
+    font-size: 0.8rem !important;
+  }
+  
+  .view-toggle-group {
+    width: 100%;
+    justify-content: space-around;
+    padding: 0.5rem !important;
+    border-top: 1px solid var(--border-color);
+    box-sizing: border-box;
+  }
+  
+  .view-toggle-btn {
+    flex: 1;
+    text-align: center;
+    padding: 0.4rem 0.25rem !important;
+    font-size: 0.75rem !important;
+  }
+
+  .threat-endpoints-table-wrapper {
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .threat-table {
+    min-width: 600px !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .ip-gui-grid {
+    grid-template-columns: repeat(8, 1fr) !important;
+    gap: 3px !important;
+  }
+
+  .ip-grid-cell {
+    font-size: 0.7rem !important;
+  }
+
+  .window-statusbar {
+    flex-direction: column;
+    align-items: flex-start !important;
+  }
+
+  .status-counts {
+    flex-direction: column;
+    gap: 0.25rem !important;
+  }
+
+  .monitor-info-table-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .container {
+    padding-left: 0.75rem !important;
+    padding-right: 0.75rem !important;
+  }
+}
+
+

@@ -1,0 +1,10 @@
+{
+  "appId": "com.dalbitfox.netbox",
+  "appName": "NetBox",
+  "webDir": "dist",
+  "server": {
+    "androidScheme": "http",
+    "allowNavigation": ["*"],
+    "cleartext": true
+  }
+}

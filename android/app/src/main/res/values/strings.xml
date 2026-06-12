@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">NetBox</string>
+    <string name="title_activity_main">NetBox</string>
+    <string name="package_name">com.dalbitfox.netbox</string>
+    <string name="custom_url_scheme">com.dalbitfox.netbox</string>
+</resources>

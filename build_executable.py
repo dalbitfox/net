@@ -10,6 +10,26 @@ def run_command(command, cwd=None):
         print(f"Error executing command: {command}")
         sys.exit(res.returncode)
 
+def get_ico_path():
+    icon_source = "deploy-temp/favicon.png"
+    ico_dest = "deploy-temp/favicon.ico"
+    
+    if not os.path.exists(icon_source):
+        print(f"Warning: Source icon not found at {icon_source}")
+        return None
+
+    try:
+        from PIL import Image
+    except ImportError:
+        print("Installing Pillow for image conversion...")
+        run_command(f"{sys.executable} -m pip install pillow")
+        from PIL import Image
+
+    print("Converting favicon.png to favicon.ico...")
+    img = Image.open(icon_source)
+    img.save(ico_dest, format='ICO', sizes=[(16, 16), (32, 32), (48, 48), (64, 64), (128, 128), (256, 256)])
+    return ico_dest
+
 def main():
     # 1. Build React frontend
     print("Building React frontend...")
@@ -40,13 +60,17 @@ def main():
     # 4. Compile standalone executable with PyInstaller
     print("Packaging application using PyInstaller...")
     
+    ico_path = get_ico_path()
+    
     # Path separator is ';' on Windows, ':' on macOS/Linux
     sep = ";" if os.name == "nt" else ":"
     dist_abs = os.path.abspath("dist")
     add_data_flag = f"{dist_abs}{sep}dist"
     
+    icon_flag = f"--icon \"{ico_path}\" " if ico_path else ""
+    
     pyinstaller_cmd = (
-        f"pyinstaller --onefile --clean "
+        f"pyinstaller --onefile --clean {icon_flag}"
         f"--add-data \"{add_data_flag}\" "
         f"--name netbox "
         f"--distpath public "

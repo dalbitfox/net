@@ -10,6 +10,56 @@ def run_command(command, cwd=None):
         print(f"Error executing command: {command}")
         sys.exit(res.returncode)
 
+def update_android_icons():
+    icon_source = "deploy-temp/favicon.png"
+    if not os.path.exists(icon_source):
+        print(f"Warning: Source icon not found at {icon_source}")
+        return
+
+    try:
+        from PIL import Image
+    except ImportError:
+        print("Installing Pillow for image manipulation...")
+        run_command(f"{sys.executable} -m pip install pillow")
+        from PIL import Image
+
+    print("Updating Android launcher icons...")
+    res_path = "android/app/src/main/res"
+    if not os.path.exists(res_path):
+        print("Warning: Android resource path not found.")
+        return
+
+    # Define mipmap folders and sizes: (folder_name, base_size, foreground_size)
+    mipmaps = [
+        ("mipmap-mdpi", 48, 108),
+        ("mipmap-hdpi", 72, 162),
+        ("mipmap-xhdpi", 96, 216),
+        ("mipmap-xxhdpi", 144, 324),
+        ("mipmap-xxxhdpi", 192, 432)
+    ]
+
+    img = Image.open(icon_source)
+
+    for folder, base_sz, fore_sz in mipmaps:
+        folder_path = os.path.join(res_path, folder)
+        if not os.path.exists(folder_path):
+            os.makedirs(folder_path)
+
+        # 1. Base and Round launcher icon
+        img_base = img.resize((base_sz, base_sz), Image.Resampling.LANCZOS)
+        img_base.save(os.path.join(folder_path, "ic_launcher.png"))
+        img_base.save(os.path.join(folder_path, "ic_launcher_round.png"))
+
+        # 2. Foreground adaptive icon (Centered with safe zone)
+        img_fore = Image.new("RGBA", (fore_sz, fore_sz), (0, 0, 0, 0))
+        target_w = int(fore_sz * 0.6)
+        img_scaled = img.resize((target_w, target_w), Image.Resampling.LANCZOS)
+        offset = (fore_sz - target_w) // 2
+        img_fore.paste(img_scaled, (offset, offset), img_scaled if img_scaled.mode == 'RGBA' else None)
+        img_fore.save(os.path.join(folder_path, "ic_launcher_foreground.png"))
+
+    print("Android launcher icons successfully updated!")
+
 def main():
     # 1. Run npm run build
     print("Building React frontend...")
@@ -46,6 +96,9 @@ def main():
         print("Adding Android platform...")
         run_command("npx cap add android")
     
+    # Update icons inside Android resources folder
+    update_android_icons()
+
     # 5. Sync project
     print("Syncing assets with Capacitor...")
     run_command("npx cap sync")
@@ -61,7 +114,7 @@ def main():
     
     if os.path.exists(apk_source):
         shutil.copy(apk_source, apk_dest)
-        print(f"\\n==============================================")
+        print(f"\n==============================================")
         print(f"SUCCESS: Android APK generated at {apk_dest}!")
         print(f"Download link: /netbox.apk")
         print(f"==============================================")

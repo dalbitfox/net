@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import './PortScanner.css';
 import ScanConfig from './ScanConfig';
 import ScanStats from './ScanStats';
@@ -12,6 +12,54 @@ const PortScanner = () => {
     const [results, setResults] = useState([]);
     const [error, setError] = useState('');
     const [progress, setProgress] = useState(0);
+
+    useEffect(() => {
+        const fetchPublicIp = async () => {
+            try {
+                // Try ipify first
+                const res = await fetch('https://api4.ipify.org?format=json');
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data.ip) {
+                        setTargets(data.ip);
+                        return;
+                    }
+                }
+            } catch (err) {
+                console.warn("Failed to fetch public IP from ipify:", err);
+            }
+
+            try {
+                // Try seeip as fallback
+                const res = await fetch('https://ip4.seeip.org/json');
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data.ip) {
+                        setTargets(data.ip);
+                        return;
+                    }
+                }
+            } catch (err) {
+                console.warn("Failed to fetch public IP from seeip:", err);
+            }
+
+            try {
+                // Try backend client-info endpoint as fallback
+                const res = await fetch('/api/client-info');
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data.ip) {
+                        setTargets(data.ip);
+                        return;
+                    }
+                }
+            } catch (err) {
+                console.warn("Failed to fetch client info from backend:", err);
+            }
+        };
+
+        fetchPublicIp();
+    }, []);
 
     const API_BASE = (
         window.location.protocol === 'file:' || 
