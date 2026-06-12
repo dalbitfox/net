@@ -118,7 +118,7 @@ const PingTester = () => {
                             ...prev,
                             `Reply from ${trimmedHost}: bytes=32 time=${rtt.toFixed(2)}ms TTL=64`
                         ];
-                        return next.slice(-30);
+                        return next.slice(-12);
                     });
                 } else {
                     lost += 1;
@@ -128,7 +128,7 @@ const PingTester = () => {
                             ...prev,
                             `Request timed out for ${trimmedHost} (${errMsg})`
                         ];
-                        return next.slice(-30);
+                        return next.slice(-12);
                     });
                 }
 
@@ -160,7 +160,7 @@ const PingTester = () => {
                         '',
                         `[SYSTEM] 사용자에 의해 핑 테스트가 중지되었습니다. (총 ${sent}회 전송)`
                     ];
-                    return next.slice(-30);
+                    return next.slice(-12);
                 });
             } else {
                 let diagnosticMsg = '';
@@ -178,7 +178,7 @@ const PingTester = () => {
                         '',
                         diagnosticMsg
                     ];
-                    return next.slice(-30);
+                    return next.slice(-12);
                 });
             }
         } catch (err) {
@@ -190,7 +190,7 @@ const PingTester = () => {
                         '',
                         `[SYSTEM] 사용자에 의해 핑 테스트가 즉시 중지되었습니다. (총 ${sent}회 전송)`
                     ];
-                    return next.slice(-30);
+                    return next.slice(-12);
                 });
             } else {
                 if (!stopRef.current) {
@@ -200,7 +200,7 @@ const PingTester = () => {
                             ...prev,
                             `❌ 에러 발생: ${err.message}`
                         ];
-                        return next.slice(-30);
+                        return next.slice(-12);
                     });
                 }
             }
@@ -394,7 +394,7 @@ const PingTester = () => {
                             height: '400px',
                             minHeight: '400px',
                             maxHeight: '400px',
-                            overflowY: 'auto',
+                            overflowY: 'hidden',
                             lineHeight: '1.4',
                             boxShadow: 'inset 0 0 10px rgba(0,0,0,0.8)'
                         }}

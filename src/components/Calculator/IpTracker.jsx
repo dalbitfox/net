@@ -394,13 +394,13 @@ const IpTracker = () => {
         );
     };
 
-    const renderIpBlockDetails = (block, title) => {
+    const renderIpBlockDetails = (block, title, extraClass = '') => {
         if (!block?.netinfo) return null;
         const info = block.netinfo;
         const contact = block.techContact || {};
 
         return (
-            <div className="card">
+            <div className={`card ${extraClass}`.trim()}>
                 <h3 className="whois-section-title">{title}</h3>
                 <div className="grid grid-cols-1 gap-4" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))' }}>
                     <div className="whois-grid-item">
@@ -541,14 +541,30 @@ const IpTracker = () => {
                     </div>
                 </div>
 
-                <div className="whois-card-grid">
-                    {/* PI/ISP 할당 정보 */}
-                    {activeBlock.PI && renderIpBlockDetails(activeBlock.PI, `${activeLang === 'ko' ? 'PI 할당 기관 정보 (KISA)' : 'PI Allocation Provider Info (KISA)'}`)}
-                    {activeBlock.ISP && renderIpBlockDetails(activeBlock.ISP, `${activeLang === 'ko' ? 'ISP / 할당 대행 기관 정보 (KISA)' : 'ISP Allocation Provider Info (KISA)'}`)}
-                    
-                    {/* 최종 사용자 할당 정보 */}
-                    {activeBlock.user && renderIpBlockDetails(activeBlock.user, `${activeLang === 'ko' ? '최종 사용자 기관 정보 (User Network)' : 'End User Organization Info'}`)}
-                </div>
+                {(() => {
+                    const blocksToRender = [];
+                    if (activeBlock.PI?.netinfo) {
+                        blocksToRender.push({ block: activeBlock.PI, title: activeLang === 'ko' ? 'PI 할당 기관 정보 (KISA)' : 'PI Allocation Provider Info (KISA)' });
+                    }
+                    if (activeBlock.ISP?.netinfo) {
+                        blocksToRender.push({ block: activeBlock.ISP, title: activeLang === 'ko' ? 'ISP / 할당 대행 기관 정보 (KISA)' : 'ISP Allocation Provider Info (KISA)' });
+                    }
+                    if (activeBlock.user?.netinfo) {
+                        blocksToRender.push({ block: activeBlock.user, title: activeLang === 'ko' ? '최종 사용자 기관 정보 (User Network)' : 'End User Organization Info' });
+                    }
+
+                    const blockCount = blocksToRender.length;
+                    return (
+                        <div className="whois-card-grid" style={blockCount === 1 ? { gridTemplateColumns: '1fr' } : {}}>
+                            {blocksToRender.map((item, index) => {
+                                const isLast = index === blockCount - 1;
+                                const isOdd = blockCount % 2 !== 0;
+                                const extraClass = (isLast && isOdd && blockCount > 1) ? 'whois-col-span-2' : '';
+                                return renderIpBlockDetails(item.block, item.title, extraClass);
+                            })}
+                        </div>
+                    );
+                })()}
 
                 {/* 글로벌 RDAP 정보 추가 표시 (해외 IP 처럼 대량 정보 제공) */}
                 {rdap && (
@@ -1010,42 +1026,9 @@ const IpTracker = () => {
                     <h2 className="info-title" style={{ fontSize: '1.4rem' }}>
                         IP & 도메인 정보 추적 (Whois)
                     </h2>
-                    <p style={{ color: 'var(--text-secondary)', marginBottom: '1rem', fontSize: '0.9rem' }}>
+                    <p style={{ color: 'var(--text-secondary)', marginBottom: '1.5rem', fontSize: '0.9rem' }}>
                         도메인 이름 (.kr, .한국), IP 주소 (IPv4, IPv6), AS 번호를 입력하여 상세 등록/할당 대역 정보, 관리 네트워크 주소 및 담당자 정보 등을 실시간으로 조회합니다.
                     </p>
-
-                    <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
-                        <a 
-                            href="https://www.whatsmydns.net" 
-                            target="_blank" 
-                            rel="noopener noreferrer" 
-                            style={{
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                gap: '0.4rem',
-                                padding: '0.5rem 1rem',
-                                backgroundColor: 'rgba(0, 191, 255, 0.1)',
-                                border: '1px solid rgba(0, 191, 255, 0.25)',
-                                borderRadius: '6px',
-                                color: 'var(--accent)',
-                                fontSize: '0.85rem',
-                                fontWeight: 'bold',
-                                textDecoration: 'none',
-                                cursor: 'pointer',
-                                transition: 'all 0.2s'
-                            }}
-                            onMouseOver={(e) => {
-                                e.target.style.backgroundColor = 'rgba(0, 191, 255, 0.2)';
-                                e.target.style.boxShadow = '0 0 8px var(--accent-glow)';
-                            }}
-                            onMouseOut={(e) => {
-                                e.target.style.backgroundColor = 'rgba(0, 191, 255, 0.1)';
-                                e.target.style.boxShadow = 'none';
-                            }}
-                        >
-                            🌐 Global DNS Testing Tool (whatsmydns.net) 바로가기
-                        </a>
-                    </div>
 
                     {/* Hurricane Electric BGP Toolkit 스타일 접속 정보 */}
                     {clientInfo && (
@@ -1204,6 +1187,38 @@ const IpTracker = () => {
                         <span className="info-label">조회 제한:</span>
                         <span>초당 최대 트랜잭션 800 tps, 실시간 데이터(5초 주기 갱신)</span>
                     </div>
+                </div>
+                <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1.5rem', flexWrap: 'wrap' }}>
+                    <a 
+                        href="https://www.whatsmydns.net" 
+                        target="_blank" 
+                        rel="noopener noreferrer" 
+                        style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '0.4rem',
+                            padding: '0.5rem 1rem',
+                            backgroundColor: 'rgba(0, 191, 255, 0.1)',
+                            border: '1px solid rgba(0, 191, 255, 0.25)',
+                            borderRadius: '6px',
+                            color: 'var(--accent)',
+                            fontSize: '0.85rem',
+                            fontWeight: 'bold',
+                            textDecoration: 'none',
+                            cursor: 'pointer',
+                            transition: 'all 0.2s'
+                        }}
+                        onMouseOver={(e) => {
+                            e.target.style.backgroundColor = 'rgba(0, 191, 255, 0.2)';
+                            e.target.style.boxShadow = '0 0 8px var(--accent-glow)';
+                        }}
+                        onMouseOut={(e) => {
+                            e.target.style.backgroundColor = 'rgba(0, 191, 255, 0.1)';
+                            e.target.style.boxShadow = 'none';
+                        }}
+                    >
+                        🌐 Global DNS Testing Tool (whatsmydns.net) 바로가기
+                    </a>
                 </div>
             </div>
         </div>
