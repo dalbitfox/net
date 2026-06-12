@@ -152,29 +152,61 @@ const IpScanner = () => {
           .then(offer => pc.setLocalDescription(offer))
           .catch(() => resolve(null));
         
+        const gatheredIps = [];
         let resolved = false;
-        pc.onicecandidate = (ice) => {
-          if (resolved || !ice || !ice.candidate || !ice.candidate.candidate) return;
-          const candidate = ice.candidate.candidate;
-          const ipRegex = /([0-9]{1,3}(\.[0-9]{1,3}){3})/;
-          const match = ipRegex.exec(candidate);
-          if (match) {
-            const ip = match[1];
-            if (ip !== '127.0.0.1' && !ip.startsWith('0.')) {
-              resolved = true;
-              resolve(ip);
-              try { pc.close(); } catch(_) {}
+        
+        const finishGathering = () => {
+          if (resolved) return;
+          resolved = true;
+          
+          if (gatheredIps.length === 0) {
+            resolve(null);
+            return;
+          }
+          
+          // Filter out APIPA (169.254.x.x)
+          const nonApipa = gatheredIps.filter(ip => !ip.startsWith('169.254.'));
+          if (nonApipa.length > 0) {
+            // Prefer standard RFC 1918 private IPs
+            const standardPrivate = nonApipa.filter(ip => {
+              const parts = ip.split('.').map(Number);
+              return (
+                parts[0] === 10 ||
+                (parts[0] === 172 && parts[1] >= 16 && parts[1] <= 31) ||
+                (parts[0] === 192 && parts[1] === 168)
+              );
+            });
+            if (standardPrivate.length > 0) {
+              resolve(standardPrivate[0]);
+            } else {
+              resolve(nonApipa[0]); // e.g. 172.0.0.2
             }
+          } else {
+            resolve(gatheredIps[0]); // Fallback to APIPA if nothing else
+          }
+          try { pc.close(); } catch(_) {}
+        };
+
+        pc.onicecandidate = (ice) => {
+          if (ice && ice.candidate && ice.candidate.candidate) {
+            const candidate = ice.candidate.candidate;
+            const ipRegex = /([0-9]{1,3}(\.[0-9]{1,3}){3})/;
+            const match = ipRegex.exec(candidate);
+            if (match) {
+              const ip = match[1];
+              if (ip !== '127.0.0.1' && !ip.startsWith('0.') && !gatheredIps.includes(ip)) {
+                gatheredIps.push(ip);
+              }
+            }
+          } else if (!ice || !ice.candidate) {
+            finishGathering();
           }
         };
         
+        // Timeout backup in case ICE gathering doesn't fire empty candidate
         setTimeout(() => {
-          if (!resolved) {
-            resolved = true;
-            resolve(null);
-            try { pc.close(); } catch(_) {}
-          }
-        }, 1500);
+          finishGathering();
+        }, 1000);
       } catch (e) {
         resolve(null);
       }
