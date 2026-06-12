@@ -366,6 +366,7 @@ const PingTester = () => {
                     {/* 터미널 내용 */}
                     <div 
                         ref={terminalContainerRef}
+                        className="ping-terminal-content"
                         style={{
                             backgroundColor: '#121212',
                             color: '#33ff33',
@@ -386,6 +387,7 @@ const PingTester = () => {
                         {terminalLines.map((line, idx) => (
                             <div 
                                 key={idx} 
+                                className="ping-terminal-line"
                                 style={{ 
                                     whiteSpace: 'pre-wrap', 
                                     wordBreak: 'break-all',
@@ -445,15 +447,28 @@ const PingTester = () => {
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem' }}>
                                     <div className="input-group">
                                         <span className="input-label">패킷 송수신 상태</span>
-                                        <div className="input-display" style={{ minHeight: '3rem', fontSize: '1rem', justifyContent: 'center' }}>
-                                            보냄: <strong style={{ color: 'var(--accent)', marginLeft: '4px', marginRight: '10px' }}>{stats.sent}</strong> 
-                                            받음: <strong style={{ color: 'var(--highlight-green)', marginLeft: '4px', marginRight: '10px' }}>{stats.received}</strong> 
-                                            손실: <strong style={{ color: stats.lost > 0 ? '#ff453a' : 'var(--text-secondary)', marginLeft: '4px' }}>{stats.lost}</strong>
+                                        <div className="input-display" style={{ minHeight: '3.5rem', padding: '0.5rem 1rem' }}>
+                                            <div className="ping-stat-cols">
+                                                <div className="ping-stat-col">
+                                                    <span className="ping-stat-col-label">보냄</span>
+                                                    <strong style={{ color: 'var(--accent)' }}>{stats.sent}</strong>
+                                                </div>
+                                                <div className="ping-stat-col-divider">|</div>
+                                                <div className="ping-stat-col">
+                                                    <span className="ping-stat-col-label">받음</span>
+                                                    <strong style={{ color: 'var(--highlight-green)' }}>{stats.received}</strong>
+                                                </div>
+                                                <div className="ping-stat-col-divider">|</div>
+                                                <div className="ping-stat-col">
+                                                    <span className="ping-stat-col-label">손실</span>
+                                                    <strong style={{ color: stats.lost > 0 ? '#ff453a' : 'var(--text-secondary)' }}>{stats.lost}</strong>
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
                                     <div className="input-group">
                                         <span className="input-label">패킷 손실률</span>
-                                        <div className="input-display" style={{ minHeight: '3rem', fontSize: '1.1rem', color: stats.loss_rate === 0 ? 'var(--highlight-green)' : stats.loss_rate === 100 ? '#ff453a' : 'var(--highlight-yellow)', justifyContent: 'center' }}>
+                                        <div className="input-display" style={{ minHeight: '3.5rem', fontSize: '1.1rem', color: stats.loss_rate === 0 ? 'var(--highlight-green)' : stats.loss_rate === 100 ? '#ff453a' : 'var(--highlight-yellow)', justifyContent: 'center' }}>
                                             {stats.loss_rate}% {stats.loss_rate === 0 ? '🟢 안정적' : stats.loss_rate === 100 ? '🔴 연결 끊김' : '🟡 불안정'}
                                         </div>
                                     </div>
@@ -463,19 +478,32 @@ const PingTester = () => {
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem' }}>
                                     <div className="input-group">
                                         <span className="input-label">응답 시간 (RTT)</span>
-                                        <div className="input-display text-blue" style={{ minHeight: '3rem', fontSize: '1.0rem', justifyContent: 'center' }}>
+                                        <div className="input-display text-blue" style={{ minHeight: '3.5rem', padding: '0.5rem 1rem' }}>
                                             {stats.avg_time !== null ? (
-                                                <>
-                                                    최소: <strong>{stats.min_time}ms</strong> | 평균: <strong>{stats.avg_time}ms</strong> | 최대: <strong>{stats.max_time}ms</strong>
-                                                </>
+                                                <div className="ping-stat-cols">
+                                                    <div className="ping-stat-col">
+                                                        <span className="ping-stat-col-label">최소</span>
+                                                        <strong>{stats.min_time}ms</strong>
+                                                    </div>
+                                                    <div className="ping-stat-col-divider">|</div>
+                                                    <div className="ping-stat-col">
+                                                        <span className="ping-stat-col-label">평균</span>
+                                                        <strong style={{ color: 'var(--highlight-blue)' }}>{stats.avg_time}ms</strong>
+                                                    </div>
+                                                    <div className="ping-stat-col-divider">|</div>
+                                                    <div className="ping-stat-col">
+                                                        <span className="ping-stat-col-label">최대</span>
+                                                        <strong>{stats.max_time}ms</strong>
+                                                    </div>
+                                                </div>
                                             ) : (
-                                                <span style={{ color: 'var(--text-secondary)' }}>시간 정보 없음 (연결 무응답)</span>
+                                                <div style={{ color: 'var(--text-secondary)', textAlign: 'center', width: '100%', fontSize: '0.9rem' }}>시간 정보 없음 (연결 무응답)</div>
                                             )}
                                         </div>
                                     </div>
                                     <div className="input-group">
                                         <span className="input-label">현재 연결 상태</span>
-                                        <div className="input-display" style={{ minHeight: '3rem', fontSize: '1.1rem', color: stats.received > 0 ? 'var(--highlight-green)' : '#ff453a', justifyContent: 'center' }}>
+                                        <div className="input-display" style={{ minHeight: '3.5rem', fontSize: '1.1rem', color: stats.received > 0 ? 'var(--highlight-green)' : '#ff453a', justifyContent: 'center' }}>
                                             {stats.received > 0 ? 'ONLINE' : 'OFFLINE'}
                                         </div>
                                     </div>
@@ -520,9 +548,57 @@ const PingTester = () => {
                 .cursor-blink {
                     animation: blink 1s step-end infinite;
                 }
+                .ping-stat-cols {
+                    display: flex;
+                    width: 100%;
+                    justify-content: space-around;
+                    align-items: center;
+                    font-family: monospace;
+                    text-align: center;
+                }
+                .ping-stat-col {
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+                    gap: 2px;
+                    flex: 1;
+                }
+                .ping-stat-col-label {
+                    font-size: 0.75rem;
+                    color: var(--text-secondary);
+                    font-weight: normal;
+                    text-transform: uppercase;
+                }
+                .ping-stat-col strong {
+                    font-size: 1.05rem;
+                }
+                .ping-stat-col-divider {
+                    color: var(--border-color);
+                    opacity: 0.5;
+                    font-weight: normal;
+                    user-select: none;
+                }
                 @media (min-width: 768px) {
                     .ping-results-grid {
                         grid-template-columns: 4fr 6fr !important;
+                    }
+                }
+                @media (max-width: 600px) {
+                    .ping-terminal-content {
+                        font-size: 0.78rem !important;
+                        padding: 1rem !important;
+                    }
+                    .ping-terminal-line {
+                        white-space: nowrap !important;
+                        overflow-x: auto !important;
+                        -webkit-overflow-scrolling: touch;
+                        word-break: normal !important;
+                    }
+                    .ping-stat-col-label {
+                        font-size: 0.7rem;
+                    }
+                    .ping-stat-col strong {
+                        font-size: 0.95rem;
                     }
                 }
             `}</style>

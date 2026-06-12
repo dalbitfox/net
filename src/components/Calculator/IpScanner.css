@@ -2417,6 +2417,46 @@
     font-size: 0.7rem !important;
   }
 
+  /* Reset tooltip positions first for 8-column layout context */
+  .ip-gui-grid > .ip-grid-cell .cell-tooltip {
+    left: 50% !important;
+    right: auto !important;
+    transform: translateX(-50%) !important;
+  }
+  .ip-gui-grid > .ip-grid-cell .cell-tooltip::after {
+    left: 50% !important;
+    right: auto !important;
+    transform: translateX(-50%) !important;
+  }
+
+  /* 8-column Left alignment (columns 1, 2) */
+  .ip-gui-grid > .ip-grid-cell:nth-child(8n+1) .cell-tooltip,
+  .ip-gui-grid > .ip-grid-cell:nth-child(8n+2) .cell-tooltip {
+    left: 0 !important;
+    right: auto !important;
+    transform: none !important;
+  }
+  .ip-gui-grid > .ip-grid-cell:nth-child(8n+1) .cell-tooltip::after,
+  .ip-gui-grid > .ip-grid-cell:nth-child(8n+2) .cell-tooltip::after {
+    left: 20px !important;
+    right: auto !important;
+    transform: none !important;
+  }
+
+  /* 8-column Right alignment (columns 7, 8) */
+  .ip-gui-grid > .ip-grid-cell:nth-child(8n+7) .cell-tooltip,
+  .ip-gui-grid > .ip-grid-cell:nth-child(8n) .cell-tooltip {
+    left: auto !important;
+    right: 0 !important;
+    transform: none !important;
+  }
+  .ip-gui-grid > .ip-grid-cell:nth-child(8n+7) .cell-tooltip::after,
+  .ip-gui-grid > .ip-grid-cell:nth-child(8n) .cell-tooltip::after {
+    left: auto !important;
+    right: 20px !important;
+    transform: none !important;
+  }
+
   .window-statusbar {
     flex-direction: column;
     align-items: flex-start !important;

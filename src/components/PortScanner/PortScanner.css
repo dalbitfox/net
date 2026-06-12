@@ -426,3 +426,246 @@
         transform: translate(0);
     }
 }
+
+/* Mobile Responsive Overrides - scoped under .diag-wrapper */
+@media (max-width: 600px) {
+    .diag-wrapper {
+        padding: 10px !important;
+    }
+
+    /* Header */
+    .diag-wrapper .scan-logo {
+        font-size: 1.8rem !important;
+        letter-spacing: 0.1em !important;
+    }
+
+    .diag-wrapper .scan-subtitle {
+        font-size: 0.7rem !important;
+        letter-spacing: 0.2em !important;
+    }
+
+    /* Control Panel */
+    .diag-wrapper .control-panel {
+        padding: 18px 15px !important;
+        margin-bottom: 20px !important;
+    }
+
+    .diag-wrapper .panel-header {
+        margin-bottom: 15px !important;
+        padding-bottom: 10px !important;
+    }
+
+    .diag-wrapper .form-grid {
+        grid-template-columns: 1fr !important;
+        gap: 15px !important;
+    }
+
+    .diag-wrapper .form-input {
+        font-size: 1.05rem !important; /* Larger font for mobile input */
+        padding: 10px 12px !important;
+    }
+
+    .diag-wrapper .protocol-btn {
+        font-size: 1rem !important;
+        padding: 10px !important;
+    }
+
+    .diag-wrapper .preset-section {
+        margin-top: 20px !important;
+        padding-top: 15px !important;
+    }
+
+    .diag-wrapper .preset-chip {
+        font-size: 0.85rem !important;
+        padding: 6px 12px !important;
+    }
+
+    .diag-wrapper .scan-button {
+        margin-top: 20px !important;
+        padding: 15px !important;
+        font-size: 1.15rem !important;
+    }
+
+    /* Stats Grid */
+    .diag-wrapper .stats-grid {
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 10px !important;
+        margin-bottom: 20px !important;
+    }
+
+    .diag-wrapper .stat-card {
+        padding: 12px 8px !important;
+    }
+
+    .diag-wrapper .stat-value {
+        font-size: 1.6rem !important;
+    }
+
+    .diag-wrapper .stat-label {
+        font-size: 0.72rem !important;
+        font-weight: 700 !important;
+    }
+
+    /* Results section header */
+    .diag-wrapper .results-section .panel-header {
+        flex-direction: row !important;
+        flex-wrap: wrap !important;
+        justify-content: space-between !important;
+        align-items: center !important;
+        gap: 10px !important;
+        margin-bottom: 12px !important;
+        padding-bottom: 0 !important;
+    }
+
+    @media (max-width: 400px) {
+        .diag-wrapper .results-section .panel-header {
+            flex-direction: column !important;
+            align-items: flex-start !important;
+        }
+    }
+
+    /* Card layout transform for the Results Table */
+    .diag-wrapper .results-table-container {
+        background: transparent !important;
+        border: none !important;
+        max-height: none !important;
+        overflow-x: visible !important;
+    }
+    
+    .diag-wrapper .results-table {
+        display: block !important;
+        min-width: 0 !important;
+    }
+    
+    .diag-wrapper .results-table thead {
+        display: none !important; /* Hide old headers */
+    }
+    
+    .diag-wrapper .results-table tbody {
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 12px !important;
+    }
+    
+    .diag-wrapper .results-table tr {
+        display: grid !important;
+        grid-template-columns: 1fr 1fr !important;
+        gap: 10px !important;
+        background: var(--bg-secondary) !important;
+        border: 1px solid var(--border-color) !important;
+        border-radius: 8px !important;
+        padding: 14px !important;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2) !important;
+        margin-bottom: 0 !important;
+    }
+    
+    .diag-wrapper .results-table td {
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: flex-start !important;
+        padding: 0 !important;
+        border-bottom: none !important;
+        font-size: 1.05rem !important; /* Larger text for readability */
+    }
+
+    /* 1st child: IP Address (Top-Left, Span across top) */
+    .diag-wrapper .results-table td:nth-child(1) {
+        grid-column: 1 !important;
+        grid-row: 1 !important;
+        font-size: 1.15rem !important;
+        font-weight: 700 !important;
+        color: var(--text-primary) !important;
+        font-family: monospace !important;
+    }
+    .diag-wrapper .results-table td:nth-child(1)::before {
+        content: "대상 IP" !important;
+        font-size: 0.72rem !important;
+        color: var(--text-secondary) !important;
+        text-transform: uppercase !important;
+        margin-bottom: 2px !important;
+        font-weight: normal !important;
+    }
+
+    /* 4th child: Status badge (Top-Right, aligned to end) */
+    .diag-wrapper .results-table td:nth-child(4) {
+        grid-column: 2 !important;
+        grid-row: 1 !important;
+        align-items: flex-end !important;
+        justify-content: center !important;
+    }
+    .diag-wrapper .results-table td:nth-child(4)::before {
+        content: "상태" !important;
+        font-size: 0.72rem !important;
+        color: var(--text-secondary) !important;
+        text-transform: uppercase !important;
+        margin-bottom: 4px !important;
+        font-weight: normal !important;
+    }
+
+    /* 2nd child: Port (Middle-Left) */
+    .diag-wrapper .results-table td:nth-child(2) {
+        grid-column: 1 !important;
+        grid-row: 2 !important;
+        border-top: 1px solid rgba(255, 255, 255, 0.05) !important;
+        padding-top: 6px !important;
+    }
+    .diag-wrapper .results-table td:nth-child(2)::before {
+        content: "포트" !important;
+        font-size: 0.72rem !important;
+        color: var(--text-secondary) !important;
+        text-transform: uppercase !important;
+        margin-bottom: 2px !important;
+    }
+
+    /* 3rd child: Protocol (Middle-Right) */
+    .diag-wrapper .results-table td:nth-child(3) {
+        grid-column: 2 !important;
+        grid-row: 2 !important;
+        align-items: flex-end !important;
+        border-top: 1px solid rgba(255, 255, 255, 0.05) !important;
+        padding-top: 6px !important;
+    }
+    .diag-wrapper .results-table td:nth-child(3)::before {
+        content: "프로토콜" !important;
+        font-size: 0.72rem !important;
+        color: var(--text-secondary) !important;
+        text-transform: uppercase !important;
+        margin-bottom: 2px !important;
+    }
+
+    /* 5th child: Service (Bottom-Left) */
+    .diag-wrapper .results-table td:nth-child(5) {
+        grid-column: 1 / span 2 !important;
+        grid-row: 3 !important;
+        border-top: 1px solid rgba(255, 255, 255, 0.05) !important;
+        padding-top: 6px !important;
+        flex-direction: row !important;
+        justify-content: space-between !important;
+        align-items: center !important;
+        width: 100% !important;
+    }
+    .diag-wrapper .results-table td:nth-child(5)::before {
+        content: "서비스" !important;
+        font-size: 0.72rem !important;
+        color: var(--text-secondary) !important;
+        text-transform: uppercase !important;
+    }
+
+    /* 6th child: Banner info (Bottom-Full width) */
+    .diag-wrapper .results-table td:nth-child(6) {
+        grid-column: 1 / span 2 !important;
+        grid-row: 4 !important;
+        border-top: 1px dashed rgba(255, 255, 255, 0.08) !important;
+        padding-top: 6px !important;
+        width: 100% !important;
+        overflow-wrap: break-word !important;
+        word-break: break-all !important;
+    }
+    .diag-wrapper .results-table td:nth-child(6)::before {
+        content: "배너 정보" !important;
+        font-size: 0.72rem !important;
+        color: var(--text-secondary) !important;
+        text-transform: uppercase !important;
+        margin-bottom: 2px !important;
+    }
+}

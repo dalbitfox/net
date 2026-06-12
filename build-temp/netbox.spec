@@ -35,5 +35,5 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
-    icon=['deploy-temp\\favicon.ico'],
+    icon=['C:\\00_Data\\00_VibeCoding\\net\\deploy-temp\\favicon.ico'],
 )

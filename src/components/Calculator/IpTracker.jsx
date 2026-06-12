@@ -508,8 +508,8 @@ const IpTracker = () => {
                 </div>
 
                 {/* 언어 선택 및 요약 헤더 */}
-                <div className="flex justify-between items-center" style={{ borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem' }}>
-                    <div className="flex gap-2">
+                <div className="whois-result-header">
+                    <div className="whois-result-badges">
                         <span className="whois-badge badge-kr">조회 대상: {whois.query}</span>
                         <span className="whois-badge">종류: {whois.queryType}</span>
                         <span className="whois-badge">레지스트리: {whois.registry}</span>
@@ -858,8 +858,8 @@ const IpTracker = () => {
         return (
             <div className="flex flex-col gap-6 fade-in-enter">
                 {/* 언어 선택 및 요약 헤더 */}
-                <div className="flex justify-between items-center" style={{ borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem' }}>
-                    <div className="flex gap-2">
+                <div className="whois-result-header">
+                    <div className="whois-result-badges">
                         <span className="whois-badge badge-kr">AS 번호: {whois.query}</span>
                         <span className="whois-badge">레지스트리: {whois.registry}</span>
                         <span className="whois-badge badge-kr">국가코드: {whois.countryCode}</span>
@@ -1016,23 +1016,13 @@ const IpTracker = () => {
 
                     {/* Hurricane Electric BGP Toolkit 스타일 접속 정보 */}
                     {clientInfo && (
-                        <div style={{
-                            backgroundColor: 'rgba(255, 255, 255, 0.02)',
-                            border: '1px solid var(--border-color)',
-                            borderRadius: '8px',
-                            padding: '1.5rem',
-                            marginBottom: '2rem',
-                            fontSize: '1rem',
-                            lineHeight: '1.8',
-                            color: 'var(--text-primary)',
-                            boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.2)'
-                        }}>
-                            <div style={{ fontSize: '1.15rem', fontWeight: 'bold', marginBottom: '1rem', color: 'var(--text-primary)' }}>
+                        <div className="bgp-toolkit-box">
+                            <div className="bgp-toolkit-title">
                                 Welcome to the Hurricane Electric BGP Toolkit (NetBox Edition).
                             </div>
                             
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                                <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap' }}>
+                                <div className="bgp-toolkit-row">
                                     <span>You are visiting from&nbsp;</span>
                                     <span style={{ fontWeight: 'bold', textDecoration: 'underline', color: 'var(--accent)', fontFamily: 'monospace' }}>{clientInfo.ip}</span>
                                     {clientInfo.countryCode && (
@@ -1050,7 +1040,7 @@ const IpTracker = () => {
                                     )}
                                 </div>
 
-                                <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap' }}>
+                                <div className="bgp-toolkit-row">
                                     <span>Your LAN/Private IP is&nbsp;</span>
                                     <span style={{ fontWeight: 'bold', textDecoration: 'underline', color: clientInfo.privateIp ? '#ff453a' : 'var(--accent)', fontFamily: 'monospace' }}>
                                         {clientInfo.privateIp || clientInfo.ip}
@@ -1074,7 +1064,7 @@ const IpTracker = () => {
                                 </div>
 
                                 {clientInfo.announcements && clientInfo.announcements.map((cidr, idx) => (
-                                    <div key={idx} style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap' }}>
+                                    <div key={idx} className="bgp-toolkit-row">
                                         <span>Announced as&nbsp;</span>
                                         <span style={{ fontWeight: 'bold', textDecoration: 'underline', color: 'var(--accent)', fontFamily: 'monospace' }}>{cidr}</span>
                                         {clientInfo.countryCode && (
@@ -1093,7 +1083,7 @@ const IpTracker = () => {
                                     </div>
                                 ))}
 
-                                <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', marginTop: '0.3rem' }}>
+                                <div className="bgp-toolkit-row" style={{ marginTop: '0.3rem' }}>
                                     <span>Your ISP is&nbsp;</span>
                                     <span style={{ fontWeight: 'bold', textDecoration: 'underline', color: 'var(--accent)', fontFamily: 'monospace' }}>{clientInfo.asn}</span>
                                     <span>&nbsp;({clientInfo.isp})</span>
@@ -1115,9 +1105,9 @@ const IpTracker = () => {
                         </div>
                     )}
 
-                    <form onSubmit={handleSearch} className="flex gap-4 items-center" style={{ flexWrap: 'wrap' }}>
-                        <div className="input-group" style={{ flexGrow: 1, minWidth: '300px' }}>
-                            <label className="input-label">추적 대상 입력</label>
+                    <div className="input-group" style={{ width: '100%' }}>
+                        <label className="input-label">추적 대상 입력</label>
+                        <form onSubmit={handleSearch} className="whois-search-form">
                             <input
                                 type="text"
                                 placeholder="예: 202.30.50.51, kisa.or.kr, AS9700, 8.8.8.8"
@@ -1125,30 +1115,31 @@ const IpTracker = () => {
                                 onChange={(e) => setQuery(e.target.value)}
                                 className="input-highlight"
                                 required
+                                style={{ padding: '0.8rem 1rem' }}
                             />
-                        </div>
-                        <button
-                            type="submit"
-                            disabled={loading}
-                            style={{
-                                marginTop: '1.5rem',
-                                padding: '1rem 2rem',
-                                backgroundColor: 'var(--accent)',
-                                color: 'var(--bg-primary)',
-                                border: 'none',
-                                borderRadius: '6px',
-                                fontSize: '1.1rem',
-                                fontWeight: 'bold',
-                                cursor: 'pointer',
-                                transition: 'all 0.2s',
-                                ...(loading ? { opacity: 0.7, cursor: 'not-allowed' } : {})
-                            }}
-                            onMouseOver={(e) => e.target.style.boxShadow = '0 0 10px var(--accent-glow)'}
-                            onMouseOut={(e) => e.target.style.boxShadow = 'none'}
-                        >
-                            {loading ? '검색 중...' : '검색'}
-                        </button>
-                    </form>
+                            <button
+                                type="submit"
+                                disabled={loading}
+                                style={{
+                                    padding: '0.8rem 1.8rem',
+                                    backgroundColor: 'var(--accent)',
+                                    color: 'var(--bg-primary)',
+                                    border: 'none',
+                                    borderRadius: '6px',
+                                    fontSize: '1rem',
+                                    fontWeight: 'bold',
+                                    cursor: 'pointer',
+                                    transition: 'all 0.2s',
+                                    whiteSpace: 'nowrap',
+                                    ...(loading ? { opacity: 0.7, cursor: 'not-allowed' } : {})
+                                }}
+                                onMouseOver={(e) => e.target.style.boxShadow = '0 0 10px var(--accent-glow)'}
+                                onMouseOut={(e) => e.target.style.boxShadow = 'none'}
+                            >
+                                {loading ? '검색 중...' : '검색'}
+                            </button>
+                        </form>
+                    </div>
                     
                     {error && (
                         <div style={{

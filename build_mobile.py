@@ -5,9 +5,22 @@ import shutil
 
 def run_command(command, cwd=None):
     print(f"Running: {command}")
-    res = subprocess.run(command, shell=True, cwd=cwd)
+    res = subprocess.run(
+        command, 
+        shell=True, 
+        cwd=cwd, 
+        stdout=subprocess.PIPE, 
+        stderr=subprocess.STDOUT, 
+        text=True, 
+        encoding='utf-8', 
+        errors='ignore'
+    )
+    print(res.stdout)
     if res.returncode != 0:
         print(f"Error executing command: {command}")
+        with open("gradle_build_error.log", "w", encoding="utf-8") as f:
+            f.write(res.stdout)
+        print("Detailed build log saved to gradle_build_error.log")
         sys.exit(res.returncode)
 
 def update_android_icons():
@@ -60,6 +73,35 @@ def update_android_icons():
 
     print("Android launcher icons successfully updated!")
 
+def setup_local_properties():
+    local_properties_path = "android/local.properties"
+    if os.path.exists(local_properties_path):
+        return
+
+    print("Setting up local.properties...")
+    # Check default Windows location
+    user_profile = os.environ.get("USERPROFILE")
+    if user_profile:
+        sdk_path = os.path.join(user_profile, "AppData", "Local", "Android", "Sdk")
+        if os.path.exists(sdk_path):
+            escaped_sdk_path = sdk_path.replace("\\", "\\\\").replace(":", "\\:")
+            with open(local_properties_path, "w", encoding="utf-8") as f:
+                f.write(f"sdk.dir={escaped_sdk_path}\n")
+            print(f"Created android/local.properties with sdk.dir={sdk_path}")
+            return
+            
+    # Check Mac location
+    home_dir = os.environ.get("HOME")
+    if home_dir:
+        sdk_path = os.path.join(home_dir, "Library", "Android", "sdk")
+        if os.path.exists(sdk_path):
+            with open(local_properties_path, "w", encoding="utf-8") as f:
+                f.write(f"sdk.dir={sdk_path}\n")
+            print(f"Created android/local.properties with sdk.dir={sdk_path}")
+            return
+            
+    print("Warning: Android SDK path not found. Please ensure ANDROID_HOME is set.")
+
 def main():
     # 1. Run npm run build
     print("Building React frontend...")
@@ -95,6 +137,9 @@ def main():
     if not os.path.exists("android"):
         print("Adding Android platform...")
         run_command("npx cap add android")
+    
+    # Auto-configure local.properties if missing
+    setup_local_properties()
     
     # Update icons inside Android resources folder
     update_android_icons()
