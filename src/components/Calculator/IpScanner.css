@@ -13,7 +13,7 @@
   border-radius: 8px;
   overflow: hidden;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
-  font-size: 0.9rem;
+  font-size: 0.96rem;
 }
 
 /* Virtual Menu Bar */
@@ -200,7 +200,7 @@
   color: var(--text-primary);
   padding: 0.4rem 0.75rem;
   font-family: monospace;
-  font-size: 0.85rem;
+  font-size: 0.92rem;
   font-weight: 700;
   outline: none;
 }
@@ -211,7 +211,7 @@
 }
 
 .range-tooltip {
-  font-size: 0.75rem;
+  font-size: 0.8rem;
   color: var(--text-secondary);
   font-family: monospace;
   white-space: nowrap;
@@ -234,7 +234,7 @@
   border-radius: 4px;
   color: var(--text-primary);
   padding: 0.4rem 2rem 0.4rem 0.6rem;
-  font-size: 0.85rem;
+  font-size: 0.92rem;
   outline: none;
 }
 
@@ -275,7 +275,7 @@
   border-right: 1px solid transparent;
   border-bottom: 1px solid var(--border-color);
   padding: 0.4rem 1.2rem;
-  font-size: 0.85rem;
+  font-size: 0.92rem;
   font-weight: 500;
   color: var(--text-secondary);
   cursor: pointer;
@@ -308,7 +308,7 @@
   width: 100%;
   border-collapse: collapse;
   text-align: left;
-  font-size: 0.85rem;
+  font-size: 0.92rem;
 }
 
 .win-table th {
@@ -423,7 +423,7 @@
 
 .monospace-cell {
   font-family: monospace;
-  font-size: 0.8rem;
+  font-size: 0.86rem;
 }
 
 /* Sub-rows for Services */
@@ -451,7 +451,7 @@
   display: flex;
   align-items: center;
   gap: 0.6rem;
-  font-size: 0.8rem;
+  font-size: 0.86rem;
   color: var(--text-secondary);
 }
 
@@ -489,7 +489,7 @@
   background-color: var(--bg-tertiary);
   border-top: 1px solid var(--border-color);
   padding: 0.4rem 0.75rem;
-  font-size: 0.8rem;
+  font-size: 0.86rem;
   color: var(--text-secondary);
   user-select: none;
   flex-wrap: wrap;
@@ -2288,13 +2288,93 @@
 
 /* Responsive Layout Classes */
 .trendy-title {
-  font-size: 2rem;
+  font-size: 2.4rem !important;
   word-break: keep-all;
   overflow-wrap: break-word;
   margin: 0;
   font-weight: 800;
   letter-spacing: -0.5px;
   line-height: 1.25;
+}
+
+.trendy-desc {
+  color: var(--text-secondary);
+  font-size: 1.08rem !important;
+  line-height: 1.6;
+  margin: 0;
+}
+
+.trendy-section-title {
+  margin: 0;
+  font-size: 1.25rem !important;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.trendy-card-desc {
+  margin: 0;
+  font-size: 1.02rem !important;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+.trendy-qr-desc {
+  margin: 0;
+  font-size: 0.98rem !important;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+.trendy-input-title {
+  margin: 0;
+  font-size: 1.02rem !important;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.pc-download-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  background: linear-gradient(135deg, var(--accent) 0%, #0099ff 100%);
+  color: #000 !important;
+  font-weight: 800;
+  padding: 0.75rem 1.5rem;
+  border-radius: 6px;
+  border: none;
+  font-size: 1.05rem;
+  cursor: pointer;
+  text-decoration: none;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 15px rgba(0, 191, 255, 0.3);
+}
+.pc-download-btn:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.1);
+  box-shadow: 0 6px 20px rgba(0, 191, 255, 0.45);
+}
+
+.mobile-download-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: var(--text-primary);
+  font-weight: 600;
+  padding: 0.75rem 1.5rem;
+  border-radius: 6px;
+  font-size: 1rem;
+  cursor: pointer;
+  text-decoration: none;
+  transition: all 0.2s;
+}
+.mobile-download-btn:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.15);
+  color: var(--text-primary);
 }
 
 .trendy-landing-grid {
@@ -2309,9 +2389,74 @@
     grid-template-columns: 1fr !important;
     gap: 1.5rem !important;
   }
+
+  .trendy-left-column {
+    display: flex !important;
+    flex-direction: column !important;
+  }
+  
+  .pc-download-card {
+    order: 2 !important;
+  }
+  
+  .mobile-download-card {
+    order: 1 !important;
+  }
+  
+  .manual-connect-card {
+    order: 3 !important;
+  }
   
   .trendy-title {
-    font-size: 1.5rem !important;
+    font-size: 1.9rem !important;
+  }
+
+  .trendy-desc {
+    font-size: 1rem !important;
+  }
+
+  .trendy-section-title {
+    font-size: 1.12rem !important;
+  }
+
+  .trendy-card-desc {
+    font-size: 0.95rem !important;
+  }
+
+  .trendy-qr-desc {
+    font-size: 0.9rem !important;
+  }
+
+  .trendy-input-title {
+    font-size: 0.95rem !important;
+  }
+
+  .pc-download-btn {
+    background: rgba(255, 255, 255, 0.02) !important;
+    border: 1px solid rgba(255, 255, 255, 0.08) !important;
+    color: var(--text-primary) !important;
+    font-weight: 600 !important;
+    font-size: 0.92rem !important;
+    box-shadow: none !important;
+  }
+  .pc-download-btn:hover {
+    background: rgba(255, 255, 255, 0.05) !important;
+    border-color: rgba(255, 255, 255, 0.15) !important;
+    transform: none !important;
+  }
+
+  .mobile-download-btn {
+    background: linear-gradient(135deg, var(--accent) 0%, #0099ff 100%) !important;
+    color: #000 !important;
+    font-weight: 800 !important;
+    border: none !important;
+    font-size: 1.05rem !important;
+    box-shadow: 0 4px 15px rgba(0, 191, 255, 0.3) !important;
+  }
+  .mobile-download-btn:hover {
+    transform: translateY(-1px) !important;
+    filter: brightness(1.1) !important;
+    box-shadow: 0 6px 20px rgba(0, 191, 255, 0.45) !important;
   }
   
   .trendy-glass-card {
@@ -2379,7 +2524,7 @@
     flex: 1;
     text-align: center;
     padding: 0.5rem 0.25rem !important;
-    font-size: 0.8rem !important;
+    font-size: 0.9rem !important;
   }
   
   .view-toggle-group {
@@ -2394,7 +2539,7 @@
     flex: 1;
     text-align: center;
     padding: 0.4rem 0.25rem !important;
-    font-size: 0.75rem !important;
+    font-size: 0.82rem !important;
   }
 
   .threat-endpoints-table-wrapper {

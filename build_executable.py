@@ -40,6 +40,13 @@ def main():
         print("Error: dist/ directory was not created by npm run build")
         sys.exit(1)
 
+    # Clean up large binary files from dist before packaging to prevent recursion
+    for filename in ["netbox.exe", "netbox.apk"]:
+        binary_path = os.path.join("dist", filename)
+        if os.path.exists(binary_path):
+            print(f"Removing {binary_path} to prevent recursive packaging...")
+            os.remove(binary_path)
+
     # 2. Check and install PyInstaller
     print("Checking for PyInstaller...")
     try:

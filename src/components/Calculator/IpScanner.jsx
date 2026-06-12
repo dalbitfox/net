@@ -911,52 +911,51 @@ const IpScanner = () => {
 
   if (!isLocal) {
     return (
-      <div className="ipscanner-container">
-        <div className="window-frame" style={{ padding: '2.5rem 2rem' }}>
+      <div className="ipscanner-container" style={{ padding: '2rem', maxWidth: '1200px', margin: '0 auto', color: 'var(--text-primary)' }}>
+        <div className="trendy-glass-card" style={{ padding: '2.5rem', background: 'rgba(20,20,20,0.6)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '16px', backdropFilter: 'blur(10px)' }}>
           <div className="trendy-landing-grid">
-            
             {/* Left Column: Connection & Installation Center */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+            <div className="trendy-left-column" style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
               <div>
                 <h1 className="trendy-title" style={{ color: 'var(--text-primary)', margin: '0 0 0.5rem 0', letterSpacing: '-0.5px' }}>
                   로컬 네트워크 진단 & 스캐너
                 </h1>
-                <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', lineHeight: '1.5', margin: 0 }}>
+                <p className="trendy-desc">
                   브라우저의 보안 통제(Private Network Access 제한)로 인해 외부 서버에서는 사설망 스캔이 제한됩니다. 로컬 에이전트를 연동해 기기와 제조사를 완벽하게 식별해 보세요.
                 </p>
               </div>
 
               {/* Action 1: PC Download */}
-              <div style={{ padding: '1.25rem', background: 'rgba(255,255,255,0.015)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '10px', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+              <div className="pc-download-card" style={{ padding: '1.25rem', background: 'rgba(255,255,255,0.015)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '10px', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                   <span style={{ fontSize: '1.1rem' }}>💻</span>
-                  <h3 style={{ margin: 0, fontSize: '0.9rem', fontWeight: '700', color: 'var(--text-primary)' }}>1. PC 에이전트 기동</h3>
+                  <h3 className="trendy-section-title">1. PC 에이전트 기동</h3>
                 </div>
-                <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--text-secondary)', lineHeight: '1.4' }}>
+                <p className="trendy-card-desc">
                   아래의 단일 실행 파일을 다운로드하여 실행하면, 자동으로 브라우저와 연동되어 사설 IP 대역 스캔이 활성화됩니다.
                 </p>
-                <a href="/netbox.exe" download className="trendy-btn" style={{ width: '100%', boxSizing: 'border-box', marginTop: '0.25rem' }}>
+                <a href="/netbox.exe" download className="pc-download-btn" style={{ width: '100%', boxSizing: 'border-box', marginTop: '0.25rem' }}>
                   📥 PC용 포터블 파일 다운로드 (.exe)
                 </a>
                 <button 
                   onClick={() => detectLocalRange()} 
                   className="trendy-btn-secondary" 
-                  style={{ width: '100%', justifyContent: 'center', padding: '0.5rem', fontSize: '0.8rem' }}
+                  style={{ width: '100%', justifyContent: 'center', padding: '0.6rem', fontSize: '0.85rem' }}
                 >
                   🔄 로컬 백엔드 연결 시도
                 </button>
               </div>
 
               {/* Action 2: Mobile Install (PWA & APK) */}
-              <div style={{ padding: '1.25rem', background: 'rgba(255,255,255,0.015)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '10px', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+              <div className="mobile-download-card" style={{ padding: '1.25rem', background: 'rgba(255,255,255,0.015)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '10px', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                   <span style={{ fontSize: '1.1rem' }}>📱</span>
-                  <h3 style={{ margin: 0, fontSize: '0.9rem', fontWeight: '700', color: 'var(--text-primary)' }}>2. 모바일 설치 앱 (Android / iOS)</h3>
+                  <h3 className="trendy-section-title">2. 모바일 설치 앱 (Android / iOS)</h3>
                 </div>
                 
                 {/* APK Download for Android */}
                 <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-                  <a href="/netbox.apk" download className="trendy-btn-secondary" style={{ flex: 1, textAlign: 'center', justifyContent: 'center', fontSize: '0.8rem', color: 'var(--accent)', borderColor: 'rgba(0, 191, 255, 0.25)' }}>
+                  <a href="/netbox.apk" download className="mobile-download-btn" style={{ width: '100%', boxSizing: 'border-box', marginTop: '0.25rem' }}>
                     🤖 Android용 앱(.apk) 다운로드
                   </a>
                 </div>
@@ -966,14 +965,14 @@ const IpScanner = () => {
                     <div style={{ padding: '6px', background: '#fff', borderRadius: '8px', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                       <img src={qrCodeUrl} alt="Mobile connection QR" style={{ width: '90px', height: '90px', display: 'block' }} />
                     </div>
-                    <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', lineHeight: '1.4' }}>
+                    <div className="trendy-qr-desc">
                       <div style={{ color: 'var(--accent)', fontWeight: '700', marginBottom: '2px' }}>✓ 모바일 와이파이 연결용 QR</div>
                       카메라로 스캔해 접속한 뒤 <strong>'홈 화면에 추가(앱 설치)'</strong>를 누르면 안드로이드 및 아이폰 바탕화면에 즉시 설치되어 스캔이 정상 작동합니다.
                     </div>
                   </div>
                 ) : (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginTop: '0.25rem', borderTop: '1px solid rgba(255,255,255,0.04)', paddingTop: '0.75rem' }}>
-                    <p style={{ margin: 0, fontSize: '0.78rem', color: 'var(--text-secondary)', lineHeight: '1.4' }}>
+                    <p className="trendy-qr-desc">
                       <strong>아이폰(iOS) 및 PWA 설치:</strong> PC 에이전트를 먼저 기동하거나 수동 IP를 연결하면 이곳에 Wi-Fi 연동용 QR 코드가 활성화됩니다.
                     </p>
                   </div>
@@ -981,10 +980,10 @@ const IpScanner = () => {
               </div>
 
               {/* Action 3: Remote IP manual connection */}
-              <form onSubmit={handleConnectAgent} style={{ padding: '1rem 1.25rem', background: 'rgba(0,191,255,0.02)', border: '1px dashed rgba(0, 191, 255, 0.15)', borderRadius: '10px', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+              <form onSubmit={handleConnectAgent} className="manual-connect-card" style={{ padding: '1rem 1.25rem', background: 'rgba(0,191,255,0.02)', border: '1px dashed rgba(0, 191, 255, 0.15)', borderRadius: '10px', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                   <span style={{ fontSize: '1rem' }}>🔗</span>
-                  <h3 style={{ margin: 0, fontSize: '0.85rem', fontWeight: '700', color: 'var(--text-primary)' }}>수동 에이전트 IP 연결 (모바일 / 타기기 전용)</h3>
+                  <h3 className="trendy-input-title">수동 에이전트 IP 연결 (모바일 / 타기기 전용)</h3>
                 </div>
                 <div style={{ display: 'flex', gap: '0.5rem' }}>
                   <input
@@ -997,18 +996,18 @@ const IpScanner = () => {
                       background: 'rgba(0,0,0,0.3)',
                       border: '1px solid rgba(255,255,255,0.1)',
                       borderRadius: '4px',
-                      padding: '0.4rem 0.6rem',
+                      padding: '0.5rem 0.75rem',
                       color: 'var(--text-primary)',
-                      fontSize: '0.8rem',
+                      fontSize: '0.9rem',
                       fontFamily: 'monospace'
                     }}
                   />
-                  <button type="submit" className="trendy-btn-secondary" style={{ padding: '0.4rem 1rem', fontSize: '0.8rem' }}>
+                  <button type="submit" className="trendy-btn-secondary" style={{ padding: '0.5rem 1.2rem', fontSize: '0.85rem' }}>
                     연결 설정
                   </button>
                 </div>
                 {customAgentIp && (
-                  <div style={{ fontSize: '0.75rem', color: 'var(--accent)' }}>
+                  <div style={{ fontSize: '0.82rem', color: 'var(--accent)' }}>
                     현재 설정된 수동 IP: <strong>{customAgentIp}</strong>
                   </div>
                 )}

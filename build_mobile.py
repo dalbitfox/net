@@ -107,6 +107,13 @@ def main():
     print("Building React frontend...")
     run_command("npm run build")
 
+    # Clean up large binary files from dist before capacitor sync to prevent recursion
+    for filename in ["netbox.exe", "netbox.apk"]:
+        binary_path = os.path.join("dist", filename)
+        if os.path.exists(binary_path):
+            print(f"Removing {binary_path} to prevent recursive packaging...")
+            os.remove(binary_path)
+
     # 2. Check if capacitor is installed
     package_json_path = "package.json"
     with open(package_json_path, "r", encoding="utf-8") as f:
@@ -147,6 +154,16 @@ def main():
     # 5. Sync project
     print("Syncing assets with Capacitor...")
     run_command("npx cap sync")
+
+    # Clean up the copied .git directory to prevent embedding git history in APK
+    assets_git_path = os.path.join("android", "app", "src", "main", "assets", "public", ".git")
+    if os.path.exists(assets_git_path):
+        print(f"Removing git history folder from Android assets: {assets_git_path}...")
+        if os.name == 'nt':
+            # Use shell command on Windows to bypass read-only attribute PermissionError
+            run_command(f'rmdir /s /q "{assets_git_path}"')
+        else:
+            run_command(f'rm -rf "{assets_git_path}"')
 
     # 6. Build APK
     print("Building Android APK via Gradle...")
