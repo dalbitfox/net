@@ -905,7 +905,7 @@ const IpScanner = () => {
     return ip;
   };
 
-  const isLocal = (isBackendConnected && !backendError) || showDemo;
+  const isLocal = (localInfo && !backendError) || showDemo;
   const localUrl = localInfo && !localInfo.isPlaceholder ? `http://${localInfo.local_ip}:${window.location.port || '5173'}` : null;
   const qrCodeUrl = localUrl ? `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(localUrl)}` : null;
 
