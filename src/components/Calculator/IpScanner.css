@@ -2041,3 +2041,48 @@
     border-color: rgba(239, 68, 68, 0.65);
   }
 }
+
+/* Inline Progress Bar under tab summary bar */
+.scan-progress-container-inline {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.6rem 1.25rem;
+  background-color: var(--bg-tertiary);
+  border-bottom: 1px solid var(--border-color);
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  box-sizing: border-box;
+}
+
+.scan-progress-container-inline .scan-progress-label {
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+}
+
+.scan-progress-container-inline .progress-track {
+  flex-grow: 1;
+  max-width: 300px;
+  height: 8px;
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.scan-progress-container-inline .progress-fill {
+  height: 100%;
+  background-color: var(--accent);
+  transition: width 0.1s ease;
+  box-shadow: 0 0 8px var(--accent-glow);
+}
+
+.scan-progress-container-inline .progress-text {
+  font-family: monospace;
+  font-weight: 700;
+  font-size: 0.75rem;
+  color: var(--text-primary);
+  min-width: 35px;
+  text-align: right;
+}

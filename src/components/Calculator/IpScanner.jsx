@@ -1278,6 +1278,16 @@ const IpScanner = () => {
             </div>
           )}
 
+          {isScanning && (
+            <div className="scan-progress-container-inline">
+              <span className="scan-progress-label">스캔 중...</span>
+              <div className="progress-track">
+                <div className="progress-fill" style={{ width: `${progress}%` }}></div>
+              </div>
+              <span className="progress-text">{progress}%</span>
+            </div>
+          )}
+
           {activeTab === 'monitor' ? (
             /* NETWORK MONITOR TAB PANEL */
             <div className="monitor-tab-container animate-fade-in">
@@ -1990,16 +2000,6 @@ const IpScanner = () => {
               </span>
             </span>
           </div>
-
-          {isScanning && (
-            <div className="scan-progress-container">
-              <span style={{ fontSize: '0.75rem' }}>스캔 중...</span>
-              <div className="progress-track">
-                <div className="progress-fill" style={{ width: `${progress}%` }}></div>
-              </div>
-              <span className="progress-text">{progress}%</span>
-            </div>
-          )}
           
           <div style={{ fontSize: '0.75rem' }}>
             {isSimulation ? "시뮬레이션 모드" : "백엔드 연결됨"}
