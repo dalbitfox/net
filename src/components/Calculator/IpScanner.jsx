@@ -908,7 +908,8 @@ const IpScanner = () => {
   const isLocal = isBackendConnected || showDemo;
 
   if (!isLocal) {
-    const localUrl = localInfo && localInfo.local_ip && !localInfo.isPlaceholder
+    const hasValidLocalIp = localInfo && localInfo.local_ip && isPrivateOrLocalIp(localInfo.local_ip);
+    const localUrl = hasValidLocalIp
       ? `http://${localInfo.local_ip}:5000`
       : null;
     const qrCodeUrl = localUrl
@@ -956,30 +957,35 @@ const IpScanner = () => {
               </div>
 
               {/* Action 2: Mobile Install (PWA) */}
+              {/* Action 2: Mobile Install (PWA & APK) */}
               <div style={{ padding: '1.25rem', background: 'rgba(255,255,255,0.015)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '10px', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                   <span style={{ fontSize: '1.1rem' }}>📱</span>
-                  <h3 style={{ margin: 0, fontSize: '0.9rem', fontWeight: '700', color: 'var(--text-primary)' }}>2. 모바일 앱 간편 설치 (안드로이드 / 아이폰)</h3>
+                  <h3 style={{ margin: 0, fontSize: '0.9rem', fontWeight: '700', color: 'var(--text-primary)' }}>2. 모바일 설치 앱 (Android / iOS)</h3>
                 </div>
                 
+                {/* APK Download for Android */}
+                <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                  <a href="/netbox.apk" download className="trendy-btn-secondary" style={{ flex: 1, textAlign: 'center', justifyContent: 'center', fontSize: '0.8rem', color: 'var(--accent)', borderColor: 'rgba(0, 191, 255, 0.25)' }}>
+                    🤖 Android용 앱(.apk) 다운로드
+                  </a>
+                </div>
+
                 {localUrl ? (
-                  <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', marginTop: '0.25rem' }}>
+                  <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', marginTop: '0.25rem', borderTop: '1px solid rgba(255,255,255,0.04)', paddingTop: '0.75rem' }}>
                     <div style={{ padding: '6px', background: '#fff', borderRadius: '8px', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <img src={qrCodeUrl} alt="Mobile connection QR" style={{ width: '100px', height: '100px', display: 'block' }} />
+                      <img src={qrCodeUrl} alt="Mobile connection QR" style={{ width: '90px', height: '90px', display: 'block' }} />
                     </div>
-                    <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', lineHeight: '1.45' }}>
-                      <div style={{ color: 'var(--accent)', fontWeight: '700', marginBottom: '4px' }}>✓ 모바일 연동 주소 생성됨</div>
-                      스마트폰 카메라로 왼쪽 QR을 스캔해 접속한 뒤, 브라우저 메뉴에서 <strong>'홈 화면에 추가(앱 설치)'</strong>를 누르세요. 모바일에서도 앱 형태로 깔끔하게 스캔을 수행할 수 있습니다.
+                    <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', lineHeight: '1.4' }}>
+                      <div style={{ color: 'var(--accent)', fontWeight: '700', marginBottom: '2px' }}>✓ 모바일 와이파이 연결용 QR</div>
+                      카메라로 스캔해 접속한 뒤 <strong>'홈 화면에 추가(앱 설치)'</strong>를 누르면 안드로이드 및 아이폰 바탕화면에 즉시 설치되어 스캔이 정상 작동합니다.
                     </div>
                   </div>
                 ) : (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                    <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--text-secondary)', lineHeight: '1.4' }}>
-                      PC 에이전트를 먼저 실행하면 모바일 기기를 연동하고 홈 화면에 앱으로 직접 추가할 수 있는 접속용 QR 코드가 이곳에 활성화됩니다.
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginTop: '0.25rem', borderTop: '1px solid rgba(255,255,255,0.04)', paddingTop: '0.75rem' }}>
+                    <p style={{ margin: 0, fontSize: '0.78rem', color: 'var(--text-secondary)', lineHeight: '1.4' }}>
+                      <strong>아이폰(iOS) 및 PWA 설치:</strong> PC 에이전트를 먼저 기동하거나 수동 IP를 연결하면 이곳에 Wi-Fi 연동용 QR 코드가 활성화됩니다.
                     </p>
-                    <div style={{ fontSize: '0.75rem', color: '#ffbd2e', background: 'rgba(255,189,46,0.05)', padding: '0.5rem', borderRadius: '6px', border: '1px dashed rgba(255,189,46,0.15)', textAlign: 'center' }}>
-                      ⚠️ PC 에이전트 구동 후에 QR 코드가 생성됩니다.
-                    </div>
                   </div>
                 )}
               </div>
