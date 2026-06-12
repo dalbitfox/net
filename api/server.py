@@ -600,12 +600,15 @@ def get_foreign_rdap(ip):
     return None
 
 
+PING_PORT_CACHE = {}
+
 def run_tcp_ping_fallback(host: str, count: int, timeout: int) -> dict:
     """
     시스템 ping 명령어를 사용할 수 없는 경우(예: Vercel 서버리스 환경 등)
     TCP 핸드셰이크를 이용해 지연 시간을 측정하는 Fallback 핑 함수
     """
     import time
+    global PING_PORT_CACHE
     try:
         ip_address = socket.gethostbyname(host)
     except socket.gaierror:
@@ -625,29 +628,39 @@ def run_tcp_ping_fallback(host: str, count: int, timeout: int) -> dict:
             }
         }
 
-    # 53(DNS) 포트를 최우선 배치하여 DNS 서버 핑 감지율을 극대화
-    ports = [53, 80, 443, 22, 135, 445, 8080]
-    selected_port = 80
-    min_probe_time = 99999.0
+    # 캐싱된 포트 확인
+    selected_port = PING_PORT_CACHE.get(ip_address)
     
-    # 각 포트를 짧게 핑하여 가장 응답이 빠른(열려있거나 즉시 RST를 보내는) 포트 탐색
-    # Vercel 해외 리전과 국내 서버 간 레이턴시(보통 150ms 이상)를 고려해 타임아웃을 1.0초로 확장
-    for p in ports:
-        t_probe = time.perf_counter()
-        try:
-            s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            s.settimeout(1.0)
-            res = s.connect_ex((ip_address, p))
-            s.close()
-            elapsed = (time.perf_counter() - t_probe) * 1000
-            
-            if elapsed < min_probe_time:
-                min_probe_time = elapsed
-                selected_port = p
-                if elapsed < 10.0:
+    if not selected_port:
+        # 53(DNS) 포트를 최우선 배치하여 DNS 서버 핑 감지율을 극대화
+        ports = [53, 80, 443, 22, 135, 445, 8080]
+        selected_port = 80
+        min_probe_time = 99999.0
+        
+        # 각 포트를 짧게 핑하여 가장 응답이 빠른(열려있거나 즉시 RST를 보내는) 포트 탐색
+        # 타임아웃을 0.3초로 단축하여 지연 방지
+        for p in ports:
+            t_probe = time.perf_counter()
+            try:
+                s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                s.settimeout(0.3)
+                res = s.connect_ex((ip_address, p))
+                s.close()
+                elapsed = (time.perf_counter() - t_probe) * 1000
+                
+                # 0(성공) 또는 활성화된 호스트의 거부 응답(10061, 111, 61) 수신 시 즉시 해당 포트 확정
+                if res in (0, 10061, 111, 61):
+                    selected_port = p
                     break
-        except Exception:
-            continue
+                    
+                if elapsed < min_probe_time:
+                    min_probe_time = elapsed
+                    selected_port = p
+            except Exception:
+                continue
+        
+        # 포트 캐시에 기록
+        PING_PORT_CACHE[ip_address] = selected_port
 
     rtts = []
     received = 0
@@ -735,6 +748,11 @@ def ping_host():
         # 보안 필터링: Command Injection 방지 (영문자, 숫자, 마침표, 하이픈만 허용)
         if not re.match(r'^[a-zA-Z0-9.-]+$', host):
             return jsonify({'error': '올바르지 않은 호스트 이름 또는 IP 주소 형식입니다.'}), 400
+            
+        # Vercel 환경(혹은 ICMP 비지원 환경)인 경우 즉시 TCP fallback 실행해 속도 최적화
+        if os.environ.get('VERCEL') == '1':
+            fallback_res = run_tcp_ping_fallback(host, count, timeout)
+            return jsonify(fallback_res)
             
         system_name = platform.system().lower()
         if 'windows' in system_name:
