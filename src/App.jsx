@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { SpeedInsights } from '@vercel/speed-insights/react';
 import Header from './components/Layout/Header';
 import Footer from './components/Layout/Footer';
 import SubnetCalculator from './components/Calculator/SubnetCalculator';
@@ -70,6 +71,7 @@ function App() {
             </main>
 
             <Footer />
+            <SpeedInsights />
         </>
     );
 }
