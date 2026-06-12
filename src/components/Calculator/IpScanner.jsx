@@ -114,6 +114,7 @@ const IpScanner = () => {
   // Connection and auto-detect state
   const [localInfo, setLocalInfo] = useState(null);
   const [backendError, setBackendError] = useState(null);
+  const [apiBase, setApiBase] = useState(API_BASE);
 
   // Monitor & Traffic Stats State
   const [monitorData, setMonitorData] = useState(null);
@@ -227,6 +228,7 @@ const IpScanner = () => {
           setIpRange(data.default_range);
           setBackendError(null);
           setIsSimulation(false); // real backend works!
+          setApiBase(API_BASE);
           return;
         }
       }
@@ -249,6 +251,7 @@ const IpScanner = () => {
       setIpRange(defaultRange);
       setBackendError("로컬 백엔드가 연결되지 않아 Vercel 서버를 통해 원격 스캔을 진행합니다. (원격 스캔 모드)");
       setIsSimulation(false); // Let them run a real scan on Vercel!
+      setApiBase('');
       return;
     }
 
@@ -279,6 +282,7 @@ const IpScanner = () => {
         setIpRange(defaultRange);
         setBackendError("로컬 백엔드가 연결되지 않아 Vercel 서버를 통해 원격 스캔을 진행합니다. (원격 스캔 모드)");
         setIsSimulation(false); // Let them run a real scan on Vercel!
+        setApiBase('');
         return;
       }
     } catch (err) {
@@ -296,6 +300,7 @@ const IpScanner = () => {
     setIpRange('192.168.0.1-254');
     setBackendError("로컬 백엔드가 연결되지 않아 시뮬레이션 모드로 전환되었습니다.");
     setIsSimulation(true);
+    setApiBase('');
   };
 
   useEffect(() => {
@@ -406,7 +411,7 @@ const IpScanner = () => {
         if (loopSimType !== 'off') {
           path = `/api/network_monitor?simulate_loop=true&loop_type=${loopSimType}`;
         }
-        const response = await fetch(`${API_BASE}${path}`);
+        const response = await fetch(`${apiBase}${path}`);
         if (response.ok) {
           const data = await response.json();
           if (data.success) {
@@ -572,7 +577,7 @@ const IpScanner = () => {
     setProgress(0);
 
     try {
-      const response = await fetch(`${API_BASE}/api/scan_lan`, {
+      const response = await fetch(`${apiBase}/api/scan_lan`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ip_range: ipRange })
