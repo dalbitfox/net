@@ -126,9 +126,33 @@ const IpScanner = () => {
   // Connection and auto-detect state
   const [localInfo, setLocalInfo] = useState(null);
   const [backendError, setBackendError] = useState(null);
-  const [apiBase, setApiBase] = useState(API_BASE);
-  const [isBackendConnected, setIsBackendConnected] = useState(false);
+  const [customAgentIp, setCustomAgentIp] = useState(() => localStorage.getItem('custom_agent_ip') || '');
+  const [apiBase, setApiBase] = useState(() => {
+    const saved = localStorage.getItem('custom_agent_ip');
+    return saved ? `http://${saved}:5000` : API_BASE;
+  });
+  const [isBackendConnected, setIsBackendConnected] = useState(() => {
+    return !!localStorage.getItem('custom_agent_ip');
+  });
   const [showDemo, setShowDemo] = useState(false);
+  const [ipInput, setIpInput] = useState(customAgentIp);
+
+  const handleConnectAgent = (e) => {
+    e.preventDefault();
+    if (ipInput.trim()) {
+      localStorage.setItem('custom_agent_ip', ipInput.trim());
+      setCustomAgentIp(ipInput.trim());
+      setApiBase(`http://${ipInput.trim()}:5000`);
+      setIsBackendConnected(true);
+      window.location.reload();
+    } else {
+      localStorage.removeItem('custom_agent_ip');
+      setCustomAgentIp('');
+      setApiBase(API_BASE);
+      setIsBackendConnected(false);
+      window.location.reload();
+    }
+  };
 
   // Monitor & Traffic Stats State
   const [monitorData, setMonitorData] = useState(null);
@@ -232,9 +256,10 @@ const IpScanner = () => {
     let gatewayIp = null;
     let defaultRange = '192.168.0.1-254';
 
-    // 1. Try local backend first to check if agent is active
+    // 1. Try local or custom configured backend first
+    const activeApi = localStorage.getItem('custom_agent_ip') ? `http://${localStorage.getItem('custom_agent_ip')}:5000` : API_BASE;
     try {
-      const response = await fetch(`${API_BASE}/api/scan_lan/local`);
+      const response = await fetch(`${activeApi}/api/scan_lan/local`);
       if (response.ok) {
         const data = await response.json();
         if (data.success) {
@@ -245,19 +270,22 @@ const IpScanner = () => {
           setIpRange(data.default_range);
           setBackendError(null);
           setIsSimulation(false);
-          setApiBase(API_BASE);
+          setApiBase(activeApi);
           setIsBackendConnected(true);
           connected = true;
           return;
         }
       }
     } catch (err) {
-      console.warn("Local backend scanning API not available, trying WebRTC fallback...", err);
+      console.warn("Target backend scanning API not available, trying WebRTC fallback...", err);
     }
 
     // If local backend is not available, we are in "Landing Page Mode" unless user overrides with Demo
-    setIsBackendConnected(false);
-    setApiBase('');
+    const hasCustom = !!localStorage.getItem('custom_agent_ip');
+    setIsBackendConnected(hasCustom); // Keep connection state true if we explicitly set it
+    if (!hasCustom) {
+      setApiBase('');
+    }
 
     // 2. Still detect their local IP to show on the landing page for user awareness
     const webRtcIp = await detectWebRtcIp();
@@ -880,305 +908,177 @@ const IpScanner = () => {
   const isLocal = isBackendConnected || showDemo;
 
   if (!isLocal) {
+    const localUrl = localInfo && localInfo.local_ip && !localInfo.isPlaceholder
+      ? `http://${localInfo.local_ip}:5000`
+      : null;
+    const qrCodeUrl = localUrl
+      ? `https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=${encodeURIComponent(localUrl)}`
+      : null;
+
     return (
-      <div className="ipscanner-container animate-fade-in" style={{ padding: '1rem', maxWidth: '1000px', margin: '0 auto' }}>
-        <div className="window-frame" style={{ border: '1px solid rgba(0, 191, 255, 0.25)', boxShadow: '0 8px 32px rgba(0, 191, 255, 0.15)', background: 'rgba(13, 14, 18, 0.95)', backdropFilter: 'blur(20px)' }}>
-          {/* Menu Bar style header */}
-          <div className="virtual-menu" style={{ justifyContent: 'space-between', padding: '0.6rem 1.2rem', backgroundColor: 'rgba(20, 22, 28, 0.9)' }}>
-            <span style={{ fontWeight: 'bold', color: 'var(--accent)', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.9rem' }}>
-              📡 NetBox IP 스캐너 & 네트워크 진단 도구
+      <div className="ipscanner-container animate-fade-in" style={{ padding: '1.5rem', maxWidth: '1000px', margin: '0 auto' }}>
+        <div className="trendy-glass-card" style={{ padding: '2.5rem 2rem' }}>
+          {/* Header Status */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', borderBottom: '1px solid rgba(255,255,255,0.06)', paddingBottom: '1.5rem', marginBottom: '2rem' }}>
+            <span style={{ fontWeight: '800', color: 'var(--text-primary)', fontSize: '1.1rem', letterSpacing: '-0.3px', display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+              📡 NetBox <span style={{ color: 'var(--accent)', fontWeight: '400', fontSize: '0.85rem' }}>| Network Scanner</span>
             </span>
-            <span style={{ fontSize: '0.75rem', color: '#ffbd2e', backgroundColor: 'rgba(255, 189, 46, 0.1)', padding: '0.2rem 0.6rem', borderRadius: '12px', fontWeight: 'bold' }}>
-              보안 샌드박스 상태 (로컬 연결 필요)
-            </span>
+            <div className="pulse-badge-offline">
+              <span></span> 로컬 에이전트 연결 대기 중
+            </div>
           </div>
 
-          <div style={{ padding: '2.5rem 2rem', display: 'flex', flexDirection: 'column', gap: '2.5rem' }}>
-            {/* Header section */}
-            <div style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.75rem' }}>
-              <h1 style={{ fontSize: '2rem', background: 'linear-gradient(135deg, var(--text-primary) 30%, var(--accent) 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', margin: 0, fontWeight: '800', letterSpacing: '-0.5px' }}>
-                로컬 네트워크 진단 & IP 스캐너
-              </h1>
-              <p style={{ color: 'var(--text-secondary)', lineHeight: '1.5', maxWidth: '600px', margin: 0, fontSize: '0.9rem' }}>
-                브라우저 보안 규정상 외부 웹에서는 사설 네트워크를 직접 스캔할 수 없습니다.<br />
-                모든 분석 및 실시간 모니터링 기능은 <strong>로컬 에이전트</strong>를 통해 안전하게 수행됩니다.
-              </p>
-              {localInfo && localInfo.local_ip && (
-                <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', marginTop: '0.25rem', padding: '0.3rem 0.8rem', background: 'rgba(0, 191, 255, 0.06)', borderRadius: '20px', border: '1px solid rgba(0, 191, 255, 0.15)', fontSize: '0.8rem', color: 'var(--accent)', fontWeight: '600' }}>
-                  <span>🔍 감지된 로컬 IP:</span> <span style={{ fontFamily: 'monospace', fontSize: '0.9rem' }}>{localInfo.local_ip}</span>
-                </div>
-              )}
-            </div>
-
-            {/* Feature Cards Grid */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-              <div style={{ textAlign: 'center', position: 'relative' }}>
-                <div style={{
-                  position: 'absolute',
-                  top: '50%',
-                  left: '50%',
-                  transform: 'translate(-50%, -50%)',
-                  width: '180px',
-                  height: '40px',
-                  background: 'radial-gradient(circle, rgba(0, 191, 255, 0.15) 0%, transparent 70%)',
-                  filter: 'blur(10px)',
-                  zIndex: 0
-                }} />
-                <h2 style={{ fontSize: '1.15rem', color: 'var(--text-primary)', fontWeight: '700', letterSpacing: '-0.3px', margin: 0, zIndex: 1, position: 'relative', display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <span style={{ fontSize: '1rem', color: 'var(--accent)' }}>✦</span> 제공하는 핵심 진단 기능
-                </h2>
+          <div style={{ display: 'grid', gridTemplateColumns: '1.1fr 0.9fr', gap: '2.5rem' }}>
+            
+            {/* Left Column: Connection & Installation Center */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+              <div>
+                <h1 style={{ fontSize: '1.75rem', fontWeight: '800', color: 'var(--text-primary)', margin: '0 0 0.5rem 0', letterSpacing: '-0.5px' }}>
+                  로컬 네트워크 진단 & 스캐너
+                </h1>
+                <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', lineHeight: '1.5', margin: 0 }}>
+                  브라우저의 보안 통제(Private Network Access 제한)로 인해 외부 서버에서는 사설망 스캔이 제한됩니다. 로컬 에이전트를 연동해 기기와 제조사를 완벽하게 식별해 보세요.
+                </p>
               </div>
-              
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1rem' }}>
-                {/* Card 1 */}
-                <div className="feature-hover-card" style={{
-                  padding: '1.25rem',
-                  background: 'linear-gradient(180deg, rgba(255,255,255,0.02) 0%, rgba(255,255,255,0.01) 100%)',
-                  border: '1px solid rgba(255,255,255,0.05)',
-                  borderRadius: '10px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '1rem',
-                  transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)'
-                }}>
-                  <div style={{
-                    width: '44px',
-                    height: '44px',
-                    borderRadius: '8px',
-                    background: 'rgba(0, 191, 255, 0.08)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: '1.5rem',
-                    flexShrink: 0,
-                    border: '1px solid rgba(0, 191, 255, 0.15)'
-                  }}>🖥️</div>
-                  <div>
-                    <h3 style={{ margin: '0 0 0.25rem 0', fontSize: '0.95rem', fontWeight: '600', color: 'var(--text-primary)' }}>IP 연결 현황 (GUI 뷰)</h3>
-                    <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--text-secondary)', lineHeight: '1.4' }}>
-                      254개 사설 IP 대역의 기기 연결 분포를 실시간 바둑판 그리드로 매핑합니다.
-                    </p>
-                  </div>
-                </div>
 
-                {/* Card 2 */}
-                <div className="feature-hover-card" style={{
-                  padding: '1.25rem',
-                  background: 'linear-gradient(180deg, rgba(255,255,255,0.02) 0%, rgba(255,255,255,0.01) 100%)',
-                  border: '1px solid rgba(255,255,255,0.05)',
-                  borderRadius: '10px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '1rem',
-                  transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)'
-                }}>
-                  <div style={{
-                    width: '44px',
-                    height: '44px',
-                    borderRadius: '8px',
-                    background: 'rgba(0, 191, 255, 0.08)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: '1.5rem',
-                    flexShrink: 0,
-                    border: '1px solid rgba(0, 191, 255, 0.15)'
-                  }}>🔍</div>
-                  <div>
-                    <h3 style={{ margin: '0 0 0.25rem 0', fontSize: '0.95rem', fontWeight: '600', color: 'var(--text-primary)' }}>포트 및 서비스 스캔</h3>
-                    <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--text-secondary)', lineHeight: '1.4' }}>
-                      HTTP, SSH 등 주요 개방 포트 고속 스캔 및 원클릭 접속 URL 링크를 제공합니다.
-                    </p>
-                  </div>
-                </div>
-
-                {/* Card 3 */}
-                <div className="feature-hover-card" style={{
-                  padding: '1.25rem',
-                  background: 'linear-gradient(180deg, rgba(255,255,255,0.02) 0%, rgba(255,255,255,0.01) 100%)',
-                  border: '1px solid rgba(255,255,255,0.05)',
-                  borderRadius: '10px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '1rem',
-                  transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)'
-                }}>
-                  <div style={{
-                    width: '44px',
-                    height: '44px',
-                    borderRadius: '8px',
-                    background: 'rgba(0, 191, 255, 0.08)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: '1.5rem',
-                    flexShrink: 0,
-                    border: '1px solid rgba(0, 191, 255, 0.15)'
-                  }}>🏷️</div>
-                  <div>
-                    <h3 style={{ margin: '0 0 0.25rem 0', fontSize: '0.95rem', fontWeight: '600', color: 'var(--text-primary)' }}>기기 식별 & OUI 조회</h3>
-                    <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--text-secondary)', lineHeight: '1.4' }}>
-                      MAC OUI 데이터 분석으로 삼성, Apple, ipTIME 등 제조사 브랜드를 자동 확인합니다.
-                    </p>
-                  </div>
-                </div>
-
-                {/* Card 4 */}
-                <div className="feature-hover-card" style={{
-                  padding: '1.25rem',
-                  background: 'linear-gradient(180deg, rgba(255,255,255,0.02) 0%, rgba(255,255,255,0.01) 100%)',
-                  border: '1px solid rgba(255,255,255,0.05)',
-                  borderRadius: '10px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '1rem',
-                  transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)'
-                }}>
-                  <div style={{
-                    width: '44px',
-                    height: '44px',
-                    borderRadius: '8px',
-                    background: 'rgba(0, 191, 255, 0.08)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: '1.5rem',
-                    flexShrink: 0,
-                    border: '1px solid rgba(0, 191, 255, 0.15)'
-                  }}>🛡️</div>
-                  <div>
-                    <h3 style={{ margin: '0 0 0.25rem 0', fontSize: '0.95rem', fontWeight: '600', color: 'var(--text-primary)' }}>보안 위협 & 장애 진단</h3>
-                    <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--text-secondary)', lineHeight: '1.4' }}>
-                      ARP 스푸핑 공격 검출 및 이중 루핑(Looping) 오결선 장애 경보를 지원합니다.
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Setup Options Section */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1.1fr 1fr', gap: '1.5rem', marginTop: '0.5rem' }}>
-              
-              {/* PC Option */}
-              <div style={{ padding: '1.5rem', backgroundColor: 'rgba(255,255,255,0.015)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '8px', display: 'flex', flexDirection: 'column', gap: '1rem', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.05)' }}>
+              {/* Action 1: PC Download */}
+              <div style={{ padding: '1.25rem', background: 'rgba(255,255,255,0.015)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '10px', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <span style={{ fontSize: '1.3rem' }}>💻</span>
-                  <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 'bold', color: 'var(--text-primary)' }}>PC에서 로컬 실행하기 (Windows)</h3>
+                  <span style={{ fontSize: '1.1rem' }}>💻</span>
+                  <h3 style={{ margin: 0, fontSize: '0.9rem', fontWeight: '700', color: 'var(--text-primary)' }}>1. PC 에이전트 기동</h3>
                 </div>
-                
-                <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', display: 'flex', flexDirection: 'column', gap: '0.7rem' }}>
-                  <div style={{ display: 'flex', gap: '0.5rem' }}>
-                    <span style={{ color: 'var(--accent)', fontWeight: 'bold' }}>1.</span>
-                    <span>아래 다운로드 버튼을 클릭하여 단일 무설치 포터블 패키지를 다운로드합니다.</span>
-                  </div>
-                  <div style={{ display: 'flex', gap: '0.5rem' }}>
-                    <span style={{ color: 'var(--accent)', fontWeight: 'bold' }}>2.</span>
-                    <span>별도 환경 설정 없이 <code>netbox.exe</code> 파일을 더블클릭하여 바로 실행합니다.</span>
-                  </div>
-                  <div style={{ display: 'flex', gap: '0.5rem' }}>
-                    <span style={{ color: 'var(--accent)', fontWeight: 'bold' }}>3.</span>
-                    <span>로컬 웹서버가 구동되며 브라우저 창(<code>http://127.0.0.1:5000</code>)이 자동으로 열립니다.</span>
-                  </div>
-                </div>
-
-                <a 
-                  href="/netbox.exe" 
-                  download 
-                  className="btn-scan"
-                  style={{ 
-                    textDecoration: 'none', 
-                    backgroundColor: 'var(--accent)', 
-                    color: '#000', 
-                    fontWeight: '800',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '0.5rem',
-                    padding: '0.8rem 1.2rem',
-                    marginTop: 'auto',
-                    border: 'none',
-                    borderRadius: '6px',
-                    textAlign: 'center',
-                    transition: 'all 0.2s ease',
-                    boxShadow: '0 4px 12px rgba(0, 191, 255, 0.25)'
-                  }}
-                  onMouseOver={(e) => e.currentTarget.style.filter = 'brightness(1.1)'}
-                  onMouseOut={(e) => e.currentTarget.style.filter = 'none'}
-                >
-                  📥 PC용 포터블 에이전트 다운로드 (.exe)
+                <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--text-secondary)', lineHeight: '1.4' }}>
+                  아래의 단일 실행 파일을 다운로드하여 실행하면, 자동으로 브라우저와 연동되어 사설 IP 대역 스캔이 활성화됩니다.
+                </p>
+                <a href="/netbox.exe" download className="trendy-btn" style={{ width: '100%', boxSizing: 'border-box', marginTop: '0.25rem' }}>
+                  📥 PC용 포터블 파일 다운로드 (.exe)
                 </a>
               </div>
 
-              {/* Mobile Option */}
-              <div style={{ padding: '1.5rem', backgroundColor: 'rgba(255,255,255,0.015)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '8px', display: 'flex', flexDirection: 'column', gap: '1rem', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.05)' }}>
+              {/* Action 2: Mobile Install (PWA) */}
+              <div style={{ padding: '1.25rem', background: 'rgba(255,255,255,0.015)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '10px', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <span style={{ fontSize: '1.3rem' }}>📱</span>
-                  <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 'bold', color: 'var(--text-primary)' }}>모바일 웹앱으로 연결하기 (iOS / Android)</h3>
+                  <span style={{ fontSize: '1.1rem' }}>📱</span>
+                  <h3 style={{ margin: 0, fontSize: '0.9rem', fontWeight: '700', color: 'var(--text-primary)' }}>2. 모바일 앱 간편 설치 (안드로이드 / 아이폰)</h3>
                 </div>
-
-                <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', display: 'flex', flexDirection: 'column', gap: '0.7rem' }}>
-                  <div style={{ display: 'flex', gap: '0.5rem' }}>
-                    <span style={{ color: 'var(--accent)', fontWeight: 'bold' }}>1.</span>
-                    <span>PC에서 <code>netbox.exe</code>를 실행하면 화면 우측 상단에 로컬 네트워크 IP가 표시됩니다.</span>
+                
+                {localUrl ? (
+                  <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', marginTop: '0.25rem' }}>
+                    <div style={{ padding: '6px', background: '#fff', borderRadius: '8px', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <img src={qrCodeUrl} alt="Mobile connection QR" style={{ width: '100px', height: '100px', display: 'block' }} />
+                    </div>
+                    <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', lineHeight: '1.45' }}>
+                      <div style={{ color: 'var(--accent)', fontWeight: '700', marginBottom: '4px' }}>✓ 모바일 연동 주소 생성됨</div>
+                      스마트폰 카메라로 왼쪽 QR을 스캔해 접속한 뒤, 브라우저 메뉴에서 <strong>'홈 화면에 추가(앱 설치)'</strong>를 누르세요. 모바일에서도 앱 형태로 깔끔하게 스캔을 수행할 수 있습니다.
+                    </div>
                   </div>
-                  <div style={{ display: 'flex', gap: '0.5rem' }}>
-                    <span style={{ color: 'var(--accent)', fontWeight: 'bold' }}>2.</span>
-                    <span>스마트폰을 PC와 **동일한 와이파이(Wi-Fi)** 공유기 망에 연결합니다.</span>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                    <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--text-secondary)', lineHeight: '1.4' }}>
+                      PC 에이전트를 먼저 실행하면 모바일 기기를 연동하고 홈 화면에 앱으로 직접 추가할 수 있는 접속용 QR 코드가 이곳에 활성화됩니다.
+                    </p>
+                    <div style={{ fontSize: '0.75rem', color: '#ffbd2e', background: 'rgba(255,189,46,0.05)', padding: '0.5rem', borderRadius: '6px', border: '1px dashed rgba(255,189,46,0.15)', textAlign: 'center' }}>
+                      ⚠️ PC 에이전트 구동 후에 QR 코드가 생성됩니다.
+                    </div>
                   </div>
-                  <div style={{ display: 'flex', gap: '0.5rem' }}>
-                    <span style={{ color: 'var(--accent)', fontWeight: 'bold' }}>3.</span>
-                    <span>모바일 크롬(Chrome) 또는 사파리(Safari) 주소창에 <code>http://[PC_IP]:5000</code>를 직접 입력하여 접속합니다.</span>
-                  </div>
-                </div>
-
-                <div 
-                  style={{ 
-                    border: '1px dashed rgba(0, 191, 255, 0.25)', 
-                    borderRadius: '6px', 
-                    padding: '0.75rem', 
-                    fontSize: '0.78rem', 
-                    color: 'var(--accent)', 
-                    backgroundColor: 'rgba(0, 191, 255, 0.03)', 
-                    marginTop: 'auto',
-                    textAlign: 'center',
-                    lineHeight: '1.5'
-                  }}
-                >
-                  💡 <strong>독립형 웹앱 설치 기능 지원:</strong><br />
-                  접속 후 모바일 브라우저의 <strong>'홈 화면에 추가'</strong> 메뉴를 누르면 독립적인 모바일 웹앱(PWA)으로 스마트폰 바탕화면에 즉시 설치되어 주소창 없이 앱처럼 명료하게 구동됩니다.
-                </div>
+                )}
               </div>
 
+              {/* Action 3: Remote IP manual connection */}
+              <form onSubmit={handleConnectAgent} style={{ padding: '1rem 1.25rem', background: 'rgba(0,191,255,0.02)', border: '1px dashed rgba(0, 191, 255, 0.15)', borderRadius: '10px', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <span style={{ fontSize: '1rem' }}>🔗</span>
+                  <h3 style={{ margin: 0, fontSize: '0.85rem', fontWeight: '700', color: 'var(--text-primary)' }}>수동 에이전트 IP 연결 (모바일 / 타기기 전용)</h3>
+                </div>
+                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                  <input
+                    type="text"
+                    placeholder="예: 192.168.0.5"
+                    value={ipInput}
+                    onChange={(e) => setIpInput(e.target.value)}
+                    style={{
+                      flex: 1,
+                      background: 'rgba(0,0,0,0.3)',
+                      border: '1px solid rgba(255,255,255,0.1)',
+                      borderRadius: '4px',
+                      padding: '0.4rem 0.6rem',
+                      color: 'var(--text-primary)',
+                      fontSize: '0.8rem',
+                      fontFamily: 'monospace'
+                    }}
+                  />
+                  <button type="submit" className="trendy-btn-secondary" style={{ padding: '0.4rem 1rem', fontSize: '0.8rem' }}>
+                    연결 설정
+                  </button>
+                </div>
+                {customAgentIp && (
+                  <div style={{ fontSize: '0.75rem', color: 'var(--accent)' }}>
+                    현재 설정된 수동 IP: <strong>{customAgentIp}</strong>
+                  </div>
+                )}
+              </form>
             </div>
 
-            {/* Demo Check Section */}
-            <div style={{ textAlign: 'center', borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: '1.5rem', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.75rem' }}>
-              <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-                설치나 에이전트 구동 전에 인터페이스와 사용법을 미리 확인하고 싶으신가요?
+            {/* Right Column: High-fidelity Live Dashboard Preview */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+              <div className="mock-radar-container">
+                <div className="radar-sweep-line" />
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem', position: 'relative', zIndex: 3 }}>
+                  <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: '600' }}>스캐너 미리보기 (GUI)</span>
+                  <span className="pulse-badge-live" style={{ fontSize: '0.65rem' }}><span />실시간 탐색 중</span>
+                </div>
+                <div className="mock-radar-grid">
+                  {Array.from({ length: 36 }).map((_, i) => {
+                    let cellClass = "mock-cell";
+                    if (i === 4 || i === 12 || i === 29) cellClass += " active-green";
+                    if (i === 18 || i === 23) cellClass += " active-orange";
+                    return <div key={i} className={cellClass} />;
+                  })}
+                </div>
               </div>
-              <button
-                onClick={() => {
-                  setShowDemo(true);
-                  setIsSimulation(true);
-                  setBackendError("체험용 시뮬레이션 데모 모드입니다. 실제 네트워크 검사를 하려면 netbox.exe를 실행하십시오.");
-                }}
-                className="btn-scan"
-                style={{
-                  background: 'transparent',
-                  border: '1px solid var(--accent)',
-                  color: 'var(--accent)',
-                  fontSize: '0.9rem',
-                  padding: '0.5rem 1.5rem',
-                  fontWeight: '600',
-                  borderRadius: '4px',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s ease'
-                }}
-                onMouseOver={(e) => e.currentTarget.style.backgroundColor = 'rgba(0, 191, 255, 0.08)'}
-                onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-              >
-                ⚡ 체험용 시뮬레이션 데모 실행하기
-              </button>
+
+              {/* Discovered devices mini list */}
+              <div style={{ background: 'rgba(0,0,0,0.2)', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.03)', padding: '0.75rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                <div style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                  감지된 단말 리스트 예시
+                </div>
+                
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', borderBottom: '1px solid rgba(255,255,255,0.04)', paddingBottom: '0.25rem' }}>
+                  <span style={{ color: 'var(--text-primary)', fontWeight: '600' }}>192.168.0.1</span>
+                  <span style={{ color: 'var(--text-secondary)' }}>iptime.router</span>
+                  <span style={{ color: 'var(--accent)', fontSize: '0.7rem' }}>EFM Networks</span>
+                </div>
+
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', borderBottom: '1px solid rgba(255,255,255,0.04)', paddingBottom: '0.25rem' }}>
+                  <span style={{ color: 'var(--text-primary)', fontWeight: '600' }}>192.168.0.22</span>
+                  <span style={{ color: 'var(--text-secondary)' }}>Galaxy-S22</span>
+                  <span style={{ color: 'var(--accent)', fontSize: '0.7rem' }}>Samsung</span>
+                </div>
+
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem' }}>
+                  <span style={{ color: 'var(--text-primary)', fontWeight: '600' }}>192.168.0.5</span>
+                  <span style={{ color: 'var(--text-secondary)' }}>iPad-Air</span>
+                  <span style={{ color: 'var(--accent)', fontSize: '0.7rem' }}>Apple, Inc.</span>
+                </div>
+              </div>
+
+              {/* Demo button inside preview */}
+              <div style={{ textAlign: 'center', marginTop: 'auto', paddingTop: '1rem', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+                <button
+                  onClick={() => {
+                    setShowDemo(true);
+                    setIsSimulation(true);
+                    setBackendError("체험용 시뮬레이션 데모 모드입니다. 실제 네트워크 검사를 하려면 netbox.exe를 실행하십시오.");
+                  }}
+                  className="trendy-btn-secondary"
+                  style={{ width: '100%', justifyContent: 'center', padding: '0.6rem' }}
+                >
+                  ⚡ 가상 체험용 데모 시뮬레이션 실행
+                </button>
+                <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', marginTop: '0.5rem', lineHeight: '1.3' }}>
+                  에이전트 구동 없이 인터페이스 및 ARP 스푸핑 진단 작동 방식을 즉시 테스트해볼 수 있습니다.
+                </div>
+              </div>
             </div>
 
           </div>
