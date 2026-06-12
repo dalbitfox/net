@@ -905,30 +905,14 @@ const IpScanner = () => {
     return ip;
   };
 
-  const isLocal = isBackendConnected || showDemo;
+  const isLocal = (isBackendConnected && !backendError) || showDemo;
+  const localUrl = localInfo && !localInfo.isPlaceholder ? `http://${localInfo.local_ip}:${window.location.port || '5173'}` : null;
+  const qrCodeUrl = localUrl ? `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(localUrl)}` : null;
 
   if (!isLocal) {
-    const hasValidLocalIp = localInfo && localInfo.local_ip && isPrivateOrLocalIp(localInfo.local_ip);
-    const localUrl = hasValidLocalIp
-      ? `http://${localInfo.local_ip}:5000`
-      : null;
-    const qrCodeUrl = localUrl
-      ? `https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=${encodeURIComponent(localUrl)}`
-      : null;
-
     return (
-      <div className="ipscanner-container animate-fade-in" style={{ padding: '1.5rem', maxWidth: '1000px', margin: '0 auto' }}>
-        <div className="trendy-glass-card" style={{ padding: '2.5rem 2rem' }}>
-          {/* Header Status */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', borderBottom: '1px solid rgba(255,255,255,0.06)', paddingBottom: '1.5rem', marginBottom: '2rem' }}>
-            <span style={{ fontWeight: '800', color: 'var(--text-primary)', fontSize: '1.1rem', letterSpacing: '-0.3px', display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-              📡 NetBox <span style={{ color: 'var(--accent)', fontWeight: '400', fontSize: '0.85rem' }}>| Network Scanner</span>
-            </span>
-            <div className="pulse-badge-offline">
-              <span></span> 로컬 에이전트 연결 대기 중
-            </div>
-          </div>
-
+      <div className="ipscanner-container">
+        <div className="window-frame" style={{ padding: '2.5rem 2rem' }}>
           <div className="trendy-landing-grid">
             
             {/* Left Column: Connection & Installation Center */}
@@ -954,6 +938,13 @@ const IpScanner = () => {
                 <a href="/netbox.exe" download className="trendy-btn" style={{ width: '100%', boxSizing: 'border-box', marginTop: '0.25rem' }}>
                   📥 PC용 포터블 파일 다운로드 (.exe)
                 </a>
+                <button 
+                  onClick={() => detectLocalRange()} 
+                  className="trendy-btn-secondary" 
+                  style={{ width: '100%', justifyContent: 'center', padding: '0.5rem', fontSize: '0.8rem' }}
+                >
+                  🔄 로컬 백엔드 연결 시도
+                </button>
               </div>
 
               {/* Action 2: Mobile Install (PWA & APK) */}

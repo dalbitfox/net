@@ -113,17 +113,23 @@ const PingTester = () => {
                     const rtt = data.stats && data.stats.avg_time !== null ? data.stats.avg_time : 10.0;
                     rtts.push(rtt);
                     
-                    setTerminalLines(prev => [
-                        ...prev,
-                        `Reply from ${trimmedHost}: bytes=32 time=${rtt.toFixed(2)}ms TTL=64`
-                    ]);
+                    setTerminalLines(prev => {
+                        const next = [
+                            ...prev,
+                            `Reply from ${trimmedHost}: bytes=32 time=${rtt.toFixed(2)}ms TTL=64`
+                        ];
+                        return next.slice(-30);
+                    });
                 } else {
                     lost += 1;
                     const errMsg = data.error || 'Request timed out.';
-                    setTerminalLines(prev => [
-                        ...prev,
-                        `Request timed out for ${trimmedHost} (${errMsg})`
-                    ]);
+                    setTerminalLines(prev => {
+                        const next = [
+                            ...prev,
+                            `Request timed out for ${trimmedHost} (${errMsg})`
+                        ];
+                        return next.slice(-30);
+                    });
                 }
 
                 // 실시간 통계 계산 및 업데이트 (이때는 정식 결과 상태)
@@ -148,11 +154,14 @@ const PingTester = () => {
             const finalLossRate = sent > 0 ? Math.round((lost / sent) * 100) : 0;
 
             if (stopRef.current) {
-                setTerminalLines(prev => [
-                    ...prev,
-                    '',
-                    `[SYSTEM] 사용자에 의해 핑 테스트가 중지되었습니다. (총 ${sent}회 전송)`
-                ]);
+                setTerminalLines(prev => {
+                    const next = [
+                        ...prev,
+                        '',
+                        `[SYSTEM] 사용자에 의해 핑 테스트가 중지되었습니다. (총 ${sent}회 전송)`
+                    ];
+                    return next.slice(-30);
+                });
             } else {
                 let diagnosticMsg = '';
                 if (finalLossRate === 100) {
@@ -163,27 +172,36 @@ const PingTester = () => {
                     diagnosticMsg = `✔ [SYSTEM] 핑 테스트 완료: 응답 수신율 안정적. (손실률 0%)`;
                 }
 
-                setTerminalLines(prev => [
-                    ...prev,
-                    '',
-                    diagnosticMsg
-                ]);
+                setTerminalLines(prev => {
+                    const next = [
+                        ...prev,
+                        '',
+                        diagnosticMsg
+                    ];
+                    return next.slice(-30);
+                });
             }
         } catch (err) {
             // AbortController 취소 시
             if (err.name === 'AbortError') {
-                setTerminalLines(prev => [
-                    ...prev,
-                    '',
-                    `[SYSTEM] 사용자에 의해 핑 테스트가 즉시 중지되었습니다. (총 ${sent}회 전송)`
-                ]);
+                setTerminalLines(prev => {
+                    const next = [
+                        ...prev,
+                        '',
+                        `[SYSTEM] 사용자에 의해 핑 테스트가 즉시 중지되었습니다. (총 ${sent}회 전송)`
+                    ];
+                    return next.slice(-30);
+                });
             } else {
                 if (!stopRef.current) {
                     setError(err.message);
-                    setTerminalLines(prev => [
-                        ...prev,
-                        `❌ 에러 발생: ${err.message}`
-                    ]);
+                    setTerminalLines(prev => {
+                        const next = [
+                            ...prev,
+                            `❌ 에러 발생: ${err.message}`
+                        ];
+                        return next.slice(-30);
+                    });
                 }
             }
         } finally {
@@ -377,9 +395,6 @@ const PingTester = () => {
                             minHeight: '400px',
                             maxHeight: '400px',
                             overflowY: 'auto',
-                            display: 'flex',
-                            flexDirection: 'column',
-                            gap: '0.4rem',
                             lineHeight: '1.4',
                             boxShadow: 'inset 0 0 10px rgba(0,0,0,0.8)'
                         }}
@@ -391,6 +406,7 @@ const PingTester = () => {
                                 style={{ 
                                     whiteSpace: 'pre-wrap', 
                                     wordBreak: 'break-all',
+                                    marginBottom: '0.4rem',
                                     color: line.startsWith('$') ? '#00bfff' : 
                                            line.startsWith('❌') || line.startsWith('[ERROR]') ? '#ff453a' : 
                                            line.startsWith('✔') || line.startsWith('[SYSTEM]') ? '#32cd32' : 
@@ -401,7 +417,7 @@ const PingTester = () => {
                             </div>
                         ))}
                         {loading && (
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#ffbd2e' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#ffbd2e', marginTop: '0.4rem' }}>
                                 <span>Pinging...</span>
                                 <span className="cursor-blink" style={{
                                     width: '8px',

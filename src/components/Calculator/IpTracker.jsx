@@ -1010,9 +1010,42 @@ const IpTracker = () => {
                     <h2 className="info-title" style={{ fontSize: '1.4rem' }}>
                         IP & 도메인 정보 추적 (Whois)
                     </h2>
-                    <p style={{ color: 'var(--text-secondary)', marginBottom: '1.5rem', fontSize: '0.9rem' }}>
+                    <p style={{ color: 'var(--text-secondary)', marginBottom: '1rem', fontSize: '0.9rem' }}>
                         도메인 이름 (.kr, .한국), IP 주소 (IPv4, IPv6), AS 번호를 입력하여 상세 등록/할당 대역 정보, 관리 네트워크 주소 및 담당자 정보 등을 실시간으로 조회합니다.
                     </p>
+
+                    <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
+                        <a 
+                            href="https://www.whatsmydns.net" 
+                            target="_blank" 
+                            rel="noopener noreferrer" 
+                            style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '0.4rem',
+                                padding: '0.5rem 1rem',
+                                backgroundColor: 'rgba(0, 191, 255, 0.1)',
+                                border: '1px solid rgba(0, 191, 255, 0.25)',
+                                borderRadius: '6px',
+                                color: 'var(--accent)',
+                                fontSize: '0.85rem',
+                                fontWeight: 'bold',
+                                textDecoration: 'none',
+                                cursor: 'pointer',
+                                transition: 'all 0.2s'
+                            }}
+                            onMouseOver={(e) => {
+                                e.target.style.backgroundColor = 'rgba(0, 191, 255, 0.2)';
+                                e.target.style.boxShadow = '0 0 8px var(--accent-glow)';
+                            }}
+                            onMouseOut={(e) => {
+                                e.target.style.backgroundColor = 'rgba(0, 191, 255, 0.1)';
+                                e.target.style.boxShadow = 'none';
+                            }}
+                        >
+                            🌐 Global DNS Testing Tool (whatsmydns.net) 바로가기
+                        </a>
+                    </div>
 
                     {/* Hurricane Electric BGP Toolkit 스타일 접속 정보 */}
                     {clientInfo && (
