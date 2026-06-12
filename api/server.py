@@ -916,7 +916,6 @@ def get_client_info_endpoint():
                 start_ip = rng.split("-")[0].strip()
                 pref = prefix.lstrip("/")
                 announcements.append(f"{start_ip}/{pref}")
-
         # ISP block
         isp_block = whois_data.get("korean", {}).get("ISP") or whois_data.get("english", {}).get("ISP")
         if isp_block and isp_block.get("netinfo"):
@@ -970,50 +969,233 @@ def is_private_ip(ip):
 # -----------------------------------------------------------------------------
 
 OUI_DB = {
+    # Apple
     '00:11:22': 'Apple, Inc.',
+    '00:1b:63': 'Apple, Inc.',
+    '00:1c:b3': 'Apple, Inc.',
+    '00:1d:4f': 'Apple, Inc.',
+    '00:1e:c2': 'Apple, Inc.',
+    '00:1f:f3': 'Apple, Inc.',
+    '00:23:32': 'Apple, Inc.',
+    '00:24:36': 'Apple, Inc.',
+    '00:25:00': 'Apple, Inc.',
+    '00:25:4b': 'Apple, Inc.',
+    '00:25:bc': 'Apple, Inc.',
+    '00:26:08': 'Apple, Inc.',
+    '00:26:b0': 'Apple, Inc.',
+    '00:26:bb': 'Apple, Inc.',
+    '1c:36:bb': 'Apple, Inc.',
+    '34:15:9e': 'Apple, Inc.',
+    '34:c0:59': 'Apple, Inc.',
+    '3c:07:54': 'Apple, Inc.',
+    '3c:15:c2': 'Apple, Inc.',
+    '3c:d0:f8': 'Apple, Inc.',
+    '40:3c:fc': 'Apple, Inc.',
+    '44:2a:60': 'Apple, Inc.',
+    '44:d8:84': 'Apple, Inc.',
+    '48:a9:8a': 'Apple, Inc.',
+    '4c:7c:5f': 'Apple, Inc.',
+    '50:bc:96': 'Apple, Inc.',
+    '54:26:96': 'Apple, Inc.',
+    '5c:96:9d': 'Apple, Inc.',
+    '5c:97:f3': 'Apple, Inc.',
+    '60:03:08': 'Apple, Inc.',
+    '60:fa:cd': 'Apple, Inc.',
+    '64:20:0c': 'Apple, Inc.',
+    '64:70:33': 'Apple, Inc.',
+    '64:b9:e8': 'Apple, Inc.',
+    '68:5b:35': 'Apple, Inc.',
+    '6c:40:08': 'Apple, Inc.',
+    '6c:70:9f': 'Apple, Inc.',
+    '6c:96:cf': 'Apple, Inc.',
+    '70:11:24': 'Apple, Inc.',
+    '70:14:a6': 'Apple, Inc.',
+    '70:3e:ac': 'Apple, Inc.',
+    '74:81:14': 'Apple, Inc.',
+    '78:31:c1': 'Apple, Inc.',
+    '78:4f:43': 'Apple, Inc.',
+    '78:7b:8a': 'Apple, Inc.',
+    '78:88:6d': 'Apple, Inc.',
+    '7c:11:be': 'Apple, Inc.',
+    '7c:c5:37': 'Apple, Inc.',
+    '7c:d1:c3': 'Apple, Inc.',
+    '80:01:84': 'Apple, Inc.',
+    '80:49:71': 'Apple, Inc.',
+    '80:ea:96': 'Apple, Inc.',
+    '84:38:35': 'Apple, Inc.',
+    '84:fc:fe': 'Apple, Inc.',
+    '88:c6:63': 'Apple, Inc.',
+    '8c:85:90': 'Apple, Inc.',
+    '8c:fe:57': 'Apple, Inc.',
+    '90:72:40': 'Apple, Inc.',
+    '94:10:3e': 'Apple, Inc.',
+    '94:94:26': 'Apple, Inc.',
+    '94:e9:79': 'Apple, Inc.',
+    '98:01:a7': 'Apple, Inc.',
+    '98:10:e8': 'Apple, Inc.',
+    '98:9e:63': 'Apple, Inc.',
+    '98:f1:70': 'Apple, Inc.',
+    'a4:5e:60': 'Apple, Inc.',
+    'a8:3b:76': 'Apple, Inc.',
+    'a8:bb:cf': 'Apple, Inc.',
+    'ac:29:3a': 'Apple, Inc.',
+    'ac:3c:0b': 'Apple, Inc.',
+    'ac:7f:3e': 'Apple, Inc.',
+    'b0:19:c6': 'Apple, Inc.',
+    'b0:34:95': 'Apple, Inc.',
+    'b4:18:d1': 'Apple, Inc.',
+    'b4:8b:19': 'Apple, Inc.',
+    'b4:f0:65': 'Apple, Inc.',
+    'b8:09:8a': 'Apple, Inc.',
+    'b8:c7:5d': 'Apple, Inc.',
+    'b8:e8:56': 'Apple, Inc.',
+    'b8:f6:b1': 'Apple, Inc.',
+    'c0:84:7a': 'Apple, Inc.',
+    'c0:9f:42': 'Apple, Inc.',
+    'c4:2c:03': 'Apple, Inc.',
+    'c8:1e:e7': 'Apple, Inc.',
+    'c8:b5:b7': 'Apple, Inc.',
+    'c8:d0:83': 'Apple, Inc.',
+    'cc:08:e0': 'Apple, Inc.',
+    'cc:29:f5': 'Apple, Inc.',
+    'd0:03:4b': 'Apple, Inc.',
+    'd0:23:db': 'Apple, Inc.',
+    'd0:25:94': 'Apple, Inc.',
+    'd0:4f:7e': 'Apple, Inc.',
+    'd4:61:9d': 'Apple, Inc.',
+    'd4:9a:20': 'Apple, Inc.',
+    'd4:a3:3d': 'Apple, Inc.',
+    'd8:1c:79': 'Apple, Inc.',
+    'd8:30:62': 'Apple, Inc.',
+    'd8:96:95': 'Apple, Inc.',
+    'd8:a2:5e': 'Apple, Inc.',
+    'e0:c9:7a': 'Apple, Inc.',
+    'e0:db:55': 'Apple, Inc.',
+    'e0:f5:c6': 'Apple, Inc.',
+    'e4:25:02': 'Apple, Inc.',
+    'e4:50:eb': 'Apple, Inc.',
+    'e4:c1:4c': 'Apple, Inc.',
+    'e4:e0:c5': 'Apple, Inc.',
+    'e8:04:0b': 'Apple, Inc.',
+    'e8:06:88': 'Apple, Inc.',
+    'e8:8d:28': 'Apple, Inc.',
+    'f0:18:98': 'Apple, Inc.',
+    'f0:24:75': 'Apple, Inc.',
+    'f0:79:60': 'Apple, Inc.',
+    'f0:99:bf': 'Apple, Inc.',
+    'f0:db:f8': 'Apple, Inc.',
+    'f4:06:12': 'Apple, Inc.',
+    'f4:1b:5f': 'Apple, Inc.',
+    'f4:f1:5a': 'Apple, Inc.',
+    'f8:27:93': 'Apple, Inc.',
+    'f8:38:80': 'Apple, Inc.',
+    'f8:62:14': 'Apple, Inc.',
+    'fc:fc:48': 'Apple, Inc.',
+    '00:11:24': 'Apple, Inc.',
+    '00:16:cb': 'Apple, Inc.',
+    '00:17:f2': 'Apple, Inc.',
+    '00:19:e3': 'Apple, Inc.',
+    '00:1a:27': 'Apple, Inc.',
+
+    # Edimax
     '00:50:fc': 'Edimax Technology Co., Ltd.',
+
+    # HP
     'cc:3e:5f': 'Hewlett Packard',
     '48:0f:cf': 'Hewlett Packard',
     '00:1b:78': 'Hewlett Packard',
+
+    # Gigabyte
     '00:1f:d0': 'GIGA-BYTE TECHNOLOGY CO., LTD.',
+
+    # Realtek
     '00:e0:4c': 'Realtek Semiconductor Corp.',
+
+    # Dell
     '00:14:22': 'Dell Inc.',
+
+    # Intel
+    '00:15:00': 'Intel Corporation',
+    '00:16:ea': 'Intel Corporation',
     '00:18:dd': 'Intel Corporation',
+    '00:1b:21': 'Intel Corporation',
     '00:1c:c0': 'Intel Corporation',
+    '00:1d:e0': 'Intel Corporation',
+    '00:1e:64': 'Intel Corporation',
+    '00:1f:3b': 'Intel Corporation',
     '00:21:5e': 'Intel Corporation',
+    '00:21:6a': 'Intel Corporation',
     '00:23:14': 'Intel Corporation',
+    '00:23:15': 'Intel Corporation',
+    '00:24:d6': 'Intel Corporation',
+    '00:24:d7': 'Intel Corporation',
+    '00:26:c7': 'Intel Corporation',
     '00:27:0e': 'Intel Corporation',
+    '00:28:f8': 'Intel Corporation',
+    '18:5e:0f': 'Intel Corporation',
+    '3c:18:a0': 'Intel Corporation',
+    '3c:a0:67': 'Intel Corporation',
+    '4c:34:88': 'Intel Corporation',
+    '58:91:cf': 'Intel Corporation',
+    '70:cd:60': 'Intel Corporation',
+    '94:b8:6d': 'Intel Corporation',
+    'a0:c5:89': 'Intel Corporation',
+    'ac:ed:5c': 'Intel Corporation',
+    'b4:b6:86': 'Intel Corporation',
+    'b4:d5:bd': 'Intel Corporation',
+    'd8:c4:97': 'Intel Corporation',
+    'e0:9d:31': 'Intel Corporation',
+    'f8:14:fe': 'Intel Corporation',
+    '00:11:75': 'Intel Corporation',
+
+    # Microsoft & VMs
     '00:15:5d': 'Microsoft Corporation',
     '00:05:69': 'VMware, Inc.',
     '00:0c:29': 'VMware, Inc.',
     '00:50:56': 'VMware, Inc.',
     '00:16:3e': 'XenSource, Inc.',
     '08:00:27': 'Oracle Corporation (VirtualBox)',
+
+    # ASUS
     'bc:5f:f4': 'ASUSTek Computer Inc.',
     'b0:6e:bf': 'ASUSTek Computer Inc.',
-    '00:11:32': 'Synology Incorporated',
-    '00:11:75': 'Intel Corporation',
     '70:8b:cd': 'ASUSTek Computer Inc.',
+
+    # Synology
+    '00:11:32': 'Synology Incorporated',
+
+    # Raspberry Pi
     'b8:27:eb': 'Raspberry Pi Foundation',
     'dc:a6:32': 'Raspberry Pi Foundation',
     'e4:5f:01': 'Raspberry Pi Foundation',
+
+    # Cisco
     '00:19:66': 'Cisco Systems, Inc.',
     '00:1a:30': 'Cisco Systems, Inc.',
     '00:2a:6a': 'Cisco Systems, Inc.',
+
+    # Philips Hue
     '00:17:88': 'Philips Lighting BV (Hue)',
+
+    # Samsung
     '00:11:f5': 'Samsung Electronics',
     '00:12:fb': 'Samsung Electronics',
+    '00:15:b9': 'Samsung Electronics',
+    '00:17:c4': 'Samsung Electronics',
+    '00:1c:7b': 'Samsung Electronics',
     '00:1e:7d': 'Samsung Electronics',
     '1c:5a:3e': 'Samsung Electronics',
     '30:07:4d': 'Samsung Electronics',
     '38:01:97': 'Samsung Electronics',
     '4c:bc:a5': 'Samsung Electronics',
     '50:56:a8': 'Samsung Electronics',
+    '70:2c:1f': 'Samsung Electronics',
+    '84:25:19': 'Samsung Electronics',
+    '90:18:7c': 'Samsung Electronics',
+    'a0:0b:ba': 'Samsung Electronics',
+    'cc:07:ab': 'Samsung Electronics',
     'e0:b9:e5': 'Samsung Electronics',
     'fc:db:b3': 'Samsung Electronics',
-    'e4:e0:c5': 'Apple, Inc.',
-    'f0:24:75': 'Apple, Inc.',
-    'f4:f1:5a': 'Apple, Inc.',
     'f8:27:93': 'Apple, Inc.',
     'fc:fc:48': 'Apple, Inc.',
     '00:03:7f': 'Atheros Communications',
@@ -1045,9 +1227,21 @@ OUI_DB = {
 import functools
 @functools.lru_cache(maxsize=256)
 def fetch_vendor_api(mac_prefix):
+    # 1. Primary: Use Troubleshooting.tools API (free, no keys, up to 250 requests/sec)
+    try:
+        url = f"https://api.troubleshooting.tools/lookup/mac/{mac_prefix}"
+        resp = requests.get(url, timeout=1.5)
+        if resp.status_code == 200:
+            val = resp.text.strip()
+            if val and "errors" not in val.lower() and "not found" not in val.lower():
+                return val
+    except Exception:
+        pass
+
+    # 2. Fallback: api.macvendors.com (limit: 1 request/second)
     try:
         url = f"https://api.macvendors.com/{mac_prefix}"
-        resp = requests.get(url, timeout=0.8)
+        resp = requests.get(url, timeout=1.5)
         if resp.status_code == 200:
             return resp.text.strip()
     except Exception:
